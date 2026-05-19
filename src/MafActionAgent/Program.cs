@@ -7,6 +7,7 @@ using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Instrumentation.AspNetCore;
 using OpenTelemetry.Instrumentation.Http;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using System;
@@ -20,6 +21,10 @@ configuration
     .AddJsonFile("appsettings.json")
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
+
+var mafHost = configuration["MAF_HOST"] ?? "127.0.0.1";
+var mafPort = configuration["MAF_PORT"] ?? "5055";
+builder.WebHost.UseUrls($"http://{mafHost}:{mafPort}");
 
 // Logging
 builder.Services.AddLogging(loggingBuilder =>
@@ -44,6 +49,9 @@ if (otelEnabled)
     
     var resource = ResourceBuilder.CreateDefault()
         .AddService(serviceName: "maf-action-agent", serviceVersion: "1.0.0");
+    var otelEndpoint = configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
+        ?? configuration["ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT"]
+        ?? "http://localhost:4317";
 
     var tracingBuilder = builder.Services
         .AddOpenTelemetry()
@@ -54,13 +62,23 @@ if (otelEnabled)
                 .AddHttpClientInstrumentation(opt => opt.RecordException = true)
                 .AddOtlpExporter(opt =>
                 {
-                    var otelEndpoint = configuration["ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT"] 
-                        ?? configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] 
-                        ?? "http://localhost:4317";
                     opt.Endpoint = new Uri(otelEndpoint);
                     opt.Protocol = OtlpExportProtocol.Grpc;
                 })
         );
+
+    builder.Logging.AddOpenTelemetry(logging =>
+    {
+        logging.IncludeFormattedMessage = true;
+        logging.IncludeScopes = true;
+        logging.ParseStateValues = true;
+        logging.SetResourceBuilder(resource);
+        logging.AddOtlpExporter(opt =>
+        {
+            opt.Endpoint = new Uri(otelEndpoint);
+            opt.Protocol = OtlpExportProtocol.Grpc;
+        });
+    });
 }
 
 // Add services
@@ -100,8 +118,6 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
-    app.UseSwagger();
-    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();

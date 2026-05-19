@@ -121,7 +121,8 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    addMessageToChat('agent', 'NeMo Data Analysis Agent', data.content || 'No response', data.responseTime);
+                    const responder = data.respondedBy || 'Agent';
+                    addMessageToChat('agent', responder, data.content || 'No response', data.responseTime);
                     
                     if (data.analysisInsights && data.analysisInsights.length > 0) {
                         addMessageToChat('system', 'System', 'Insights: ' + data.analysisInsights.join(', '), new Date());

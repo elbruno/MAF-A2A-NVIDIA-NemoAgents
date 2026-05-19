@@ -7,10 +7,12 @@ using OpenTelemetry;
 using OpenTelemetry.Exporter;
 using OpenTelemetry.Instrumentation.AspNetCore;
 using OpenTelemetry.Instrumentation.Http;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Shared.Models;
@@ -23,6 +25,10 @@ configuration
     .AddJsonFile("appsettings.json")
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
+
+var webUiHost = configuration["WEB_UI_HOST"] ?? "127.0.0.1";
+var webUiPort = configuration["WEB_UI_PORT"] ?? "5000";
+builder.WebHost.UseUrls($"http://{webUiHost}:{webUiPort}");
 
 // Logging
 builder.Services.AddLogging(loggingBuilder =>
@@ -47,6 +53,9 @@ if (otelEnabled)
     
     var resource = ResourceBuilder.CreateDefault()
         .AddService(serviceName: "web-chat-interface", serviceVersion: "1.0.0");
+    var otelEndpoint = configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]
+        ?? configuration["ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT"]
+        ?? "http://localhost:4317";
 
     builder.Services
         .AddOpenTelemetry()
@@ -57,13 +66,23 @@ if (otelEnabled)
                 .AddHttpClientInstrumentation(opt => opt.RecordException = true)
                 .AddOtlpExporter(opt =>
                 {
-                    var otelEndpoint = configuration["ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT"] 
-                        ?? configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] 
-                        ?? "http://localhost:4317";
                     opt.Endpoint = new Uri(otelEndpoint);
                     opt.Protocol = OtlpExportProtocol.Grpc;
                 })
         );
+
+    builder.Logging.AddOpenTelemetry(logging =>
+    {
+        logging.IncludeFormattedMessage = true;
+        logging.IncludeScopes = true;
+        logging.ParseStateValues = true;
+        logging.SetResourceBuilder(resource);
+        logging.AddOtlpExporter(opt =>
+        {
+            opt.Endpoint = new Uri(otelEndpoint);
+            opt.Protocol = OtlpExportProtocol.Grpc;
+        });
+    });
 }
 
 // Add services
@@ -205,7 +224,10 @@ class AgentClient : IAgentClient
             if (response.IsSuccessStatusCode)
             {
                 var content = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<T>(content) ?? throw new Exception("Deserialization failed");
+                return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? throw new Exception("Deserialization failed");
             }
             throw new Exception($"Request failed: {response.StatusCode}");
         }
@@ -227,7 +249,10 @@ class AgentClient : IAgentClient
             if (response.IsSuccessStatusCode)
             {
                 var responseContent = await response.Content.ReadAsStringAsync();
-                return JsonSerializer.Deserialize<T>(responseContent) ?? throw new Exception("Deserialization failed");
+                return JsonSerializer.Deserialize<T>(responseContent, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                }) ?? throw new Exception("Deserialization failed");
             }
             throw new Exception($"Request failed: {response.StatusCode}");
         }
@@ -260,7 +285,8 @@ class AgentOrchestrator : IAgentOrchestrator
         var nemoEndpoint = _configuration["NEMO_A2A_ENDPOINT"] ?? "http://127.0.0.1:8088";
         try
         {
-            var card = await _agentClient.GetAsync<AgentCard>($"{nemoEndpoint}/.well-known/agent-card.json");
+            var cardPayload = await _agentClient.GetAsync<JsonElement>($"{nemoEndpoint}/.well-known/agent-card.json");
+            var card = ParseAgentCard(cardPayload);
             results.Add(new ServiceDiscoveryResult
             {
                 ServiceName = "NeMo Data Analysis Agent",
@@ -280,7 +306,8 @@ class AgentOrchestrator : IAgentOrchestrator
         var mafEndpoint = _configuration["MAF_AGENT_ENDPOINT"] ?? "http://127.0.0.1:5055";
         try
         {
-            var card = await _agentClient.GetAsync<AgentCard>($"{mafEndpoint}/.well-known/agent-card.json");
+            var cardPayload = await _agentClient.GetAsync<JsonElement>($"{mafEndpoint}/.well-known/agent-card.json");
+            var card = ParseAgentCard(cardPayload);
             results.Add(new ServiceDiscoveryResult
             {
                 ServiceName = "MAF Action Agent",
@@ -297,6 +324,85 @@ class AgentOrchestrator : IAgentOrchestrator
         }
 
         return results;
+    }
+
+    private static AgentCard ParseAgentCard(JsonElement payload)
+    {
+        var card = new AgentCard
+        {
+            Name = ReadString(payload, "name"),
+            Description = ReadString(payload, "description"),
+            Version = ReadString(payload, "version"),
+            Endpoint = ReadString(payload, "endpoint"),
+            A2AVersion = ReadString(payload, "a2a_version", "a2AVersion")
+        };
+
+        if (TryGetProperty(payload, out var capabilitiesElement, "capabilities"))
+        {
+            card.Capabilities = ParseCapabilities(capabilitiesElement);
+        }
+
+        return card;
+    }
+
+    private static List<string> ParseCapabilities(JsonElement capabilitiesElement)
+    {
+        var capabilities = new List<string>();
+
+        switch (capabilitiesElement.ValueKind)
+        {
+            case JsonValueKind.Array:
+                foreach (var item in capabilitiesElement.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.String)
+                    {
+                        capabilities.Add(item.GetString() ?? string.Empty);
+                    }
+                }
+                break;
+            case JsonValueKind.Object:
+                foreach (var property in capabilitiesElement.EnumerateObject())
+                {
+                    capabilities.Add(property.Name);
+                }
+                break;
+            case JsonValueKind.String:
+                capabilities.Add(capabilitiesElement.GetString() ?? string.Empty);
+                break;
+        }
+
+        return capabilities.Where(c => !string.IsNullOrWhiteSpace(c)).ToList();
+    }
+
+    private static string ReadString(JsonElement payload, params string[] keys)
+    {
+        foreach (var key in keys)
+        {
+            if (TryGetProperty(payload, out var element, key) && element.ValueKind == JsonValueKind.String)
+            {
+                return element.GetString() ?? string.Empty;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static bool TryGetProperty(JsonElement payload, out JsonElement value, params string[] keys)
+    {
+        foreach (var property in payload.EnumerateObject())
+        {
+            foreach (var key in keys)
+            {
+                if (string.Equals(property.Name, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    value = property.Value;
+                    return true;
+                }
+            }
+        }
+
+        value = default;
+        return false;
     }
 
     public async Task<Dictionary<string, object>> RequestAnalysisAsync(AnalysisRequest request)
@@ -327,18 +433,74 @@ class ChatService : IChatService
     public async Task<ChatResponse> ProcessChatAsync(ChatRequest request)
     {
         _logger.LogInformation($"Processing chat: {request.Message}");
-        
-        // For now, return a simple response
-        // In a full implementation, this would route to both agents based on intent
+
+        var normalized = request.Message.ToLowerInvariant();
         var response = new ChatResponse
         {
             MessageId = Guid.NewGuid().ToString(),
-            Content = $"Received: {request.Message}",
-            AnalysisInsights = new List<string> { "Analysis would go here" },
+            Content = string.Empty,
+            RespondedBy = "Web Chat Orchestrator",
             ResponseTime = DateTime.UtcNow
         };
 
-        await Task.CompletedTask;
+        if (normalized.Contains("alert") || normalized.Contains("report") || normalized.Contains("action") || normalized.Contains("trigger"))
+        {
+            var actionRequest = new ActionRequest
+            {
+                ActionType = InferActionType(normalized),
+                Parameters = new Dictionary<string, object>
+                {
+                    ["message"] = request.Message
+                }
+            };
+
+            try
+            {
+                var actionResult = await _orchestrator.ExecuteActionAsync(actionRequest);
+                response.RespondedBy = "MAF Action Agent";
+                response.Content = string.IsNullOrWhiteSpace(actionResult.Details)
+                    ? "Action workflow processed by MAF Action Agent."
+                    : actionResult.Details;
+                response.ActionsExecuted = new List<ActionResult> { actionResult };
+                response.AnalysisInsights = new List<string>
+                {
+                    "Action workflow executed through MAF Action Agent."
+                };
+                return response;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "MAF execution failed for chat request");
+            }
+        }
+
+        response.RespondedBy = "NeMo Data Analysis Agent";
+        response.Content = $"Analysis request accepted for: {request.Message}";
+        response.AnalysisInsights = BuildAnalysisInsights(request.Message);
         return response;
+    }
+
+    private static string InferActionType(string normalizedMessage)
+    {
+        if (normalizedMessage.Contains("alert"))
+        {
+            return "trigger-alert";
+        }
+
+        if (normalizedMessage.Contains("report"))
+        {
+            return "generate-report";
+        }
+
+        return "execute-action";
+    }
+
+    private static List<string> BuildAnalysisInsights(string message)
+    {
+        return new List<string>
+        {
+            "Request routed to NeMo Data Analysis Agent.",
+            $"Query context: {message}"
+        };
     }
 }

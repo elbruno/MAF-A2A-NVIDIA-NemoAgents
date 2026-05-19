@@ -12,9 +12,10 @@ var azureOpenAiApiKey = builder.AddParameter("azure-openai-api-key", secret: tru
 
 var dashboardOtlpHttpEndpoint = builder.Configuration["ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL"];
 var dashboardOtlpGrpcEndpoint = builder.Configuration["ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL"];
-var nemoOtelEndpoint = !string.IsNullOrWhiteSpace(dashboardOtlpHttpEndpoint)
+var otlpGrpcEndpoint = dashboardOtlpGrpcEndpoint ?? "http://localhost:4317";
+var nemoOtelTracesEndpoint = !string.IsNullOrWhiteSpace(dashboardOtlpHttpEndpoint)
     ? $"{dashboardOtlpHttpEndpoint.TrimEnd('/')}/v1/traces"
-    : dashboardOtlpGrpcEndpoint ?? "http://localhost:4317";
+    : "http://localhost:4318/v1/traces";
 
 // NeMo Data Analysis Agent (Executable - Python)
 var nemo = builder.AddExecutable(
@@ -33,7 +34,7 @@ var nemo = builder.AddExecutable(
     .WithEnvironment("AZURE_OPENAI_ENDPOINT", azureOpenAiEndpoint)
     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", azureOpenAiDeploymentName)
     .WithEnvironment("AZURE_OPENAI_API_KEY", azureOpenAiApiKey)
-    .WithEnvironment("NEMO_OTEL_TRACES_ENDPOINT", nemoOtelEndpoint)
+    .WithEnvironment("NEMO_OTEL_TRACES_ENDPOINT", nemoOtelTracesEndpoint)
     .WithEnvironment("NEMO_OTEL_PROJECT", "nemo-data-analysis-agent")
     .WithEnvironment("NEMO_LOG_LEVEL", "INFO")
     .WithUrlForEndpoint("http", url =>
@@ -61,7 +62,8 @@ var mafAgent = builder.AddExecutable(
     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", azureOpenAiDeploymentName)
     .WithEnvironment("AZURE_OPENAI_API_KEY", azureOpenAiApiKey)
     .WithEnvironment("ENABLE_OTEL_TRACING", "true")
-    .WithEnvironment("ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT", nemoOtelEndpoint)
+    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otlpGrpcEndpoint)
+    .WithEnvironment("ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT", otlpGrpcEndpoint)
     .WaitFor(nemo)
     .WithUrlForEndpoint("http", url =>
     {
@@ -88,7 +90,8 @@ var webUi = builder.AddExecutable(
     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", azureOpenAiDeploymentName)
     .WithEnvironment("AZURE_OPENAI_API_KEY", azureOpenAiApiKey)
     .WithEnvironment("ENABLE_OTEL_TRACING", "true")
-    .WithEnvironment("ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT", nemoOtelEndpoint)
+    .WithEnvironment("OTEL_EXPORTER_OTLP_ENDPOINT", otlpGrpcEndpoint)
+    .WithEnvironment("ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT", otlpGrpcEndpoint)
     .WaitFor(nemo)
     .WaitFor(mafAgent)
     .WithUrlForEndpoint("http", url =>
