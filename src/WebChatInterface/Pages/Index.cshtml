@@ -87,6 +87,7 @@
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
         const predefinedBtns = document.querySelectorAll('.predefined-btn');
+        const sessionStorageKey = 'mafNemoChatSessionId';
 
         // Handle send button click
         sendBtn.addEventListener('click', () => sendMessage());
@@ -116,7 +117,7 @@
                 const response = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message })
+                    body: JSON.stringify({ message, sessionId: getSessionId() })
                 });
 
                 if (response.ok) {
@@ -174,6 +175,17 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function getSessionId() {
+            let sessionId = window.localStorage.getItem(sessionStorageKey);
+            if (!sessionId) {
+                sessionId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+                    ? `web-ui-${window.crypto.randomUUID()}`
+                    : `web-ui-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+                window.localStorage.setItem(sessionStorageKey, sessionId);
+            }
+            return sessionId;
         }
 
         // Load service status

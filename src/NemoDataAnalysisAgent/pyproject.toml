@@ -1,0 +1,24 @@
+[build-system]
+build-backend = "setuptools.build_meta"
+requires = ["setuptools>=64"]
+
+[project]
+name = "nemo-data-analysis-agent"
+version = "0.1.0"
+description = "Custom NAT components for the NeMo data analysis agent"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+  "nvidia-nat[langchain]~=1.6",
+  "numpy>=1.24.0",
+  "pandas>=2.1.0",
+]
+classifiers = ["Programming Language :: Python"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.entry-points."nat.components"]
+nemo_data_analysis_agent = "nemo_data_analysis_agent.register"

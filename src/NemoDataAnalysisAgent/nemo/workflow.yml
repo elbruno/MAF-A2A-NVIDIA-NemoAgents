@@ -1,109 +1,40 @@
-# NeMo Agent Toolkit Workflow - Data Analysis Agent (NVIDIA API / NIM)
-# This workflow exposes a data analysis agent via A2A (Agent-to-Agent) communication
+functions:
+  analyze_time_series:
+    _type: analyze_time_series
+  detect_anomalies:
+    _type: detect_anomalies
+  calculate_metrics:
+    _type: calculate_metrics
+  generate_insights:
+    _type: generate_insights
 
-definitions:
-  models:
-    nvidia_llm:
-      type: "NIMModel"
-      provider: "nvidia"
-      config:
-        model: "meta-llama-3.1-70b-instruct"
-        base_url: "https://api.nvidianim.cloud/v1"
-        api_key: "${NVIDIA_API_KEY}"
-        temperature: 0.2
-        max_tokens: 1024
-
-  tools:
-    analyze_time_series:
-      type: "ToolReference"
-      description: "Analyze time-series data to detect trends and anomalies"
-      config:
-        source: "tools.data_analysis:analyze_time_series_data"
-
-    detect_anomalies:
-      type: "ToolReference"
-      description: "Detect statistical anomalies in data streams"
-      config:
-        source: "tools.data_analysis:detect_data_anomalies"
-
-    calculate_metrics:
-      type: "ToolReference"
-      description: "Calculate statistical metrics and KPIs"
-      config:
-        source: "tools.data_analysis:calculate_metrics"
-
-    generate_insights:
-      type: "ToolReference"
-      description: "Generate business insights from data analysis"
-      config:
-        source: "tools.data_analysis:generate_insights"
-
-  agents:
-    data_analysis_agent:
-      type: "Agent"
-      config:
-        model: "nvidia_llm"
-        name: "Data Analysis Agent"
-        description: "Analyzes business data, detects trends, identifies anomalies, and generates insights"
-        tools:
-          - "analyze_time_series"
-          - "detect_anomalies"
-          - "calculate_metrics"
-          - "generate_insights"
-        memory:
-          type: "ConversationMemory"
-          config:
-            max_turns: 20
-        system_prompt: |
-          You are a professional data analysis expert. Your role is to:
-          1. Analyze provided business data using available tools
-          2. Identify trends, patterns, and anomalies
-          3. Calculate relevant metrics and KPIs
-          4. Generate actionable insights
-          5. Provide clear recommendations for the action agent
-          
-          Always explain your analysis process and be specific about findings.
-          Format results as structured data when possible.
-
-  routers:
-    analysis_router:
-      type: "Router"
-      config:
-        routing_strategy: "direct"
-        routes:
-          - agent: "data_analysis_agent"
-            description: "Route analysis requests to the data analysis agent"
+llms:
+  nvidia_llm:
+    _type: nim
+    model_name: meta/llama-3.1-70b-instruct
+    api_key: ${NVIDIA_API_KEY}
+    temperature: 0.2
+    max_tokens: 1024
 
 general:
-  name: "Data Analysis System"
-  description: "NVIDIA NeMo Agent Toolkit - Data Analysis Agent with A2A support"
-  
-  a2a:
-    enabled: true
-    server:
-      host: "${NEMO_HOST:-127.0.0.1}"
-      port: "${NEMO_PORT:-8088}"
-      route_prefix: "/"
-      
-  telemetry:
-    tracing:
-      enabled: true
-      otelcollector:
-        enabled: true
-        endpoint: "${NEMO_OTEL_TRACES_ENDPOINT:-http://localhost:4317}"
-      
-  logging:
-    level: "${NEMO_LOG_LEVEL:-INFO}"
-    format: "json"
-    
-  health_checks:
-    enabled: true
-    liveness_path: "/health/live"
-    readiness_path: "/health/ready"
-    startup_path: "/health/startup"
+  front_end:
+    _type: a2a
+    host: ${NEMO_HOST:-127.0.0.1}
+    port: ${NEMO_PORT:-8088}
+    name: NeMo Data Analysis Agent
+    description: Analyze business metrics, detect anomalies, and summarize actionable insights.
+    version: 1.0.0
+    log_level: ${NEMO_LOG_LEVEL:-INFO}
 
-routes:
-  - path: "/analyze"
-    router: "analysis_router"
-    method: "POST"
-    description: "Submit data for analysis"
+workflow:
+  _type: react_agent
+  llm_name: nvidia_llm
+  tool_names: [analyze_time_series, detect_anomalies, calculate_metrics, generate_insights]
+  description: Analyze time-series metrics and produce business-ready findings.
+  system_prompt: |
+    You are a professional data analysis agent.
+    Available tools:
+    {tools}
+    Tool names: {tool_names}
+    Use the available tools to inspect time-series data, calculate metrics, detect anomalies,
+    and generate concise, actionable insights. Explain findings clearly and call out important risks.

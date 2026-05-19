@@ -105,6 +105,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddHttpClient<IAgentClient, AgentClient>(client =>
 {
     client.DefaultRequestHeaders.Add("Accept", "application/json");
+    client.Timeout = TimeSpan.FromMinutes(5);
 });
 
 // Add Health Checks
@@ -190,6 +191,7 @@ interface IAgentOrchestrator
     Task<List<ServiceDiscoveryResult>> DiscoverAgentsAsync();
     Task<Dictionary<string, object>> RequestAnalysisAsync(AnalysisRequest request);
     Task<ActionResult> ExecuteActionAsync(ActionRequest request);
+    Task<string> SendNemoMessageAsync(string message, string? sessionId);
 }
 
 interface IChatService
@@ -281,16 +283,18 @@ class AgentOrchestrator : IAgentOrchestrator
         var results = new List<ServiceDiscoveryResult>();
         
         // Discover NeMo Agent
-        var nemoEndpoint = _configuration["NEMO_A2A_ENDPOINT"] ?? "http://127.0.0.1:8088";
+        var nemoEndpoint = ResolveServiceEndpoint(_configuration["NEMO_A2A_ENDPOINT"], "http://127.0.0.1:8088");
+        var nemoDiscoveryEndpoint = NormalizeServiceBaseEndpoint(nemoEndpoint);
+        var nemoCardUrl = BuildCardUrl(nemoDiscoveryEndpoint);
         try
         {
-            var cardPayload = await _agentClient.GetAsync<JsonElement>($"{nemoEndpoint}/.well-known/agent-card.json");
-            var card = ParseAgentCard(cardPayload);
+            var cardPayload = await _agentClient.GetAsync<JsonElement>(nemoCardUrl);
+            var card = ParseAgentCard(cardPayload, nemoDiscoveryEndpoint);
             results.Add(new ServiceDiscoveryResult
             {
                 ServiceName = "NeMo Data Analysis Agent",
                 Status = "Running",
-                Endpoint = nemoEndpoint,
+                Endpoint = nemoDiscoveryEndpoint,
                 AgentCard = card,
                 LastChecked = DateTime.UtcNow
             });
@@ -302,16 +306,18 @@ class AgentOrchestrator : IAgentOrchestrator
         }
 
         // Discover MAF Agent
-        var mafEndpoint = _configuration["MAF_AGENT_ENDPOINT"] ?? "http://127.0.0.1:5055";
+        var mafEndpoint = ResolveServiceEndpoint(_configuration["MAF_AGENT_ENDPOINT"], "http://127.0.0.1:5055");
+        var mafDiscoveryEndpoint = NormalizeServiceBaseEndpoint(mafEndpoint);
+        var mafCardUrl = BuildCardUrl(mafDiscoveryEndpoint);
         try
         {
-            var cardPayload = await _agentClient.GetAsync<JsonElement>($"{mafEndpoint}/.well-known/agent-card.json");
-            var card = ParseAgentCard(cardPayload);
+            var cardPayload = await _agentClient.GetAsync<JsonElement>(mafCardUrl);
+            var card = ParseAgentCard(cardPayload, mafDiscoveryEndpoint);
             results.Add(new ServiceDiscoveryResult
             {
                 ServiceName = "MAF Action Agent",
                 Status = "Running",
-                Endpoint = mafEndpoint,
+                Endpoint = mafDiscoveryEndpoint,
                 AgentCard = card,
                 LastChecked = DateTime.UtcNow
             });
@@ -325,14 +331,14 @@ class AgentOrchestrator : IAgentOrchestrator
         return results;
     }
 
-    private static AgentCard ParseAgentCard(JsonElement payload)
+    private static AgentCard ParseAgentCard(JsonElement payload, string serviceBaseEndpoint)
     {
         var card = new AgentCard
         {
             Name = ReadString(payload, "name"),
             Description = ReadString(payload, "description"),
             Version = ReadString(payload, "version"),
-            Endpoint = ReadString(payload, "endpoint"),
+            Endpoint = ResolveCardEndpoint(serviceBaseEndpoint, ReadString(payload, "endpoint")),
             A2AVersion = ReadString(payload, "a2a_version", "a2AVersion")
         };
 
@@ -342,6 +348,56 @@ class AgentOrchestrator : IAgentOrchestrator
         }
 
         return card;
+    }
+
+    private static string BuildCardUrl(string serviceBaseEndpoint)
+    {
+        return $"{NormalizeServiceBaseEndpoint(serviceBaseEndpoint).TrimEnd('/')}/.well-known/agent-card.json";
+    }
+
+    private static string ResolveServiceEndpoint(string? configuredEndpoint, string fallbackEndpoint)
+    {
+        var candidate = string.IsNullOrWhiteSpace(configuredEndpoint)
+            ? fallbackEndpoint
+            : configuredEndpoint.Trim();
+
+        if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri))
+        {
+            return fallbackEndpoint;
+        }
+
+        if (uri.AbsolutePath.Equals("/.well-known/agent-card.json", StringComparison.OrdinalIgnoreCase))
+        {
+            return uri.GetLeftPart(UriPartial.Authority);
+        }
+
+        return candidate.TrimEnd('/');
+    }
+
+    private static string NormalizeServiceBaseEndpoint(string endpoint)
+    {
+        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri))
+        {
+            return endpoint.TrimEnd('/');
+        }
+
+        return uri.GetLeftPart(UriPartial.Authority).TrimEnd('/');
+    }
+
+    private static string ResolveCardEndpoint(string serviceBaseEndpoint, string rawEndpoint)
+    {
+        if (string.IsNullOrWhiteSpace(rawEndpoint))
+        {
+            return string.Empty;
+        }
+
+        if (Uri.TryCreate(rawEndpoint, UriKind.Absolute, out var absoluteUri))
+        {
+            return absoluteUri.ToString();
+        }
+
+        var baseWithSlash = $"{serviceBaseEndpoint.TrimEnd('/')}/";
+        return new Uri(new Uri(baseWithSlash), rawEndpoint.TrimStart('/')).ToString();
     }
 
     private static List<string> ParseCapabilities(JsonElement capabilitiesElement)
@@ -406,15 +462,87 @@ class AgentOrchestrator : IAgentOrchestrator
 
     public async Task<Dictionary<string, object>> RequestAnalysisAsync(AnalysisRequest request)
     {
-        var nemoEndpoint = _configuration["NEMO_A2A_ENDPOINT"] ?? "http://127.0.0.1:8088";
+        var nemoEndpoint = ResolveServiceEndpoint(_configuration["NEMO_A2A_ENDPOINT"], "http://127.0.0.1:8088");
         // Send A2A JSON-RPC request to NeMo agent
-        return await _agentClient.PostAsync<Dictionary<string, object>>($"{nemoEndpoint}/", request);
+        return await _agentClient.PostAsync<Dictionary<string, object>>(nemoEndpoint, request);
     }
 
     public async Task<ActionResult> ExecuteActionAsync(ActionRequest request)
     {
-        var mafEndpoint = _configuration["MAF_AGENT_ENDPOINT"] ?? "http://127.0.0.1:5055";
+        var mafEndpoint = NormalizeServiceBaseEndpoint(ResolveServiceEndpoint(_configuration["MAF_AGENT_ENDPOINT"], "http://127.0.0.1:5055"));
         return await _agentClient.PostAsync<ActionResult>($"{mafEndpoint}/api/actions/execute", request);
+    }
+
+    public async Task<string> SendNemoMessageAsync(string message, string? sessionId)
+    {
+        var nemoEndpoint = ResolveServiceEndpoint(_configuration["NEMO_A2A_ENDPOINT"], "http://127.0.0.1:8088");
+        var resolvedSessionId = string.IsNullOrWhiteSpace(sessionId)
+            ? $"web-chat-{Guid.NewGuid():N}"
+            : sessionId;
+
+        var payload = new
+        {
+            jsonrpc = "2.0",
+            id = Guid.NewGuid().ToString("D"),
+            method = "message/send",
+            @params = new
+            {
+                message = new
+                {
+                    kind = "message",
+                    messageId = Guid.NewGuid().ToString("D"),
+                    contextId = resolvedSessionId,
+                    role = "user",
+                    parts = new[]
+                    {
+                        new
+                        {
+                            kind = "text",
+                            text = message
+                        }
+                    }
+                }
+            }
+        };
+
+        var responsePayload = await _agentClient.PostAsync<JsonElement>(nemoEndpoint, payload);
+        return ExtractNemoTextResponse(responsePayload);
+    }
+
+    private static string ExtractNemoTextResponse(JsonElement payload)
+    {
+        if (TryGetProperty(payload, out var errorNode, "error"))
+        {
+            var errorMessage = ReadString(errorNode, "message");
+            if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                throw new InvalidOperationException($"NeMo returned an error: {errorMessage}");
+            }
+
+            throw new InvalidOperationException("NeMo returned an error payload.");
+        }
+
+        if (!TryGetProperty(payload, out var resultNode, "result"))
+        {
+            throw new InvalidOperationException("NeMo response did not contain a result payload.");
+        }
+
+        if (TryGetProperty(resultNode, out var partsNode, "parts") && partsNode.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var part in partsNode.EnumerateArray())
+            {
+                if (TryGetProperty(part, out var textNode, "text") && textNode.ValueKind == JsonValueKind.String)
+                {
+                    var text = textNode.GetString();
+                    if (!string.IsNullOrWhiteSpace(text))
+                    {
+                        return text;
+                    }
+                }
+            }
+        }
+
+        throw new InvalidOperationException("NeMo response did not include textual content.");
     }
 }
 
@@ -442,7 +570,26 @@ class ChatService : IChatService
             ResponseTime = DateTime.UtcNow
         };
 
-        if (normalized.Contains("alert") || normalized.Contains("report") || normalized.Contains("action") || normalized.Contains("trigger"))
+        var shouldTriggerAction = ShouldTriggerAction(normalized);
+        var nemoSucceeded = false;
+
+        try
+        {
+            var nemoReply = await _orchestrator.SendNemoMessageAsync(request.Message, request.SessionId);
+            response.RespondedBy = "NeMo Data Analysis Agent";
+            response.Content = nemoReply;
+            response.AnalysisInsights = new List<string>
+            {
+                "Request routed to NeMo Data Analysis Agent."
+            };
+            nemoSucceeded = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "NeMo analysis failed for chat request");
+        }
+
+        if (shouldTriggerAction)
         {
             var actionRequest = new ActionRequest
             {
@@ -456,15 +603,16 @@ class ChatService : IChatService
             try
             {
                 var actionResult = await _orchestrator.ExecuteActionAsync(actionRequest);
-                response.RespondedBy = "MAF Action Agent";
-                response.Content = string.IsNullOrWhiteSpace(actionResult.Details)
+                var actionDetails = string.IsNullOrWhiteSpace(actionResult.Details)
                     ? "Action workflow processed by MAF Action Agent."
                     : actionResult.Details;
+
+                response.RespondedBy = nemoSucceeded ? "NeMo + MAF Orchestrator" : "MAF Action Agent";
+                response.Content = nemoSucceeded
+                    ? $"{response.Content}\n\nMAF action result: {actionDetails}"
+                    : actionDetails;
                 response.ActionsExecuted = new List<ActionResult> { actionResult };
-                response.AnalysisInsights = new List<string>
-                {
-                    "Action workflow executed through MAF Action Agent."
-                };
+                response.AnalysisInsights.Add("Action workflow executed through MAF Action Agent.");
                 return response;
             }
             catch (Exception ex)
@@ -473,9 +621,17 @@ class ChatService : IChatService
             }
         }
 
-        response.RespondedBy = "NeMo Data Analysis Agent";
-        response.Content = $"Analysis request accepted for: {request.Message}";
-        response.AnalysisInsights = BuildAnalysisInsights(request.Message);
+        if (nemoSucceeded)
+        {
+            return response;
+        }
+
+        response.RespondedBy = "System";
+        response.Content = "NeMo Data Analysis Agent is unavailable or returned an invalid response.";
+        response.AnalysisInsights = new List<string>
+        {
+            "Failed to retrieve NeMo analysis response."
+        };
         return response;
     }
 
@@ -494,12 +650,24 @@ class ChatService : IChatService
         return "execute-action";
     }
 
-    private static List<string> BuildAnalysisInsights(string message)
+    private static bool ShouldTriggerAction(string normalizedMessage)
     {
-        return new List<string>
+        var hasActionKeyword =
+            normalizedMessage.Contains("alert") ||
+            normalizedMessage.Contains("report") ||
+            normalizedMessage.Contains("action") ||
+            normalizedMessage.Contains("trigger");
+
+        if (!hasActionKeyword)
         {
-            "Request routed to NeMo Data Analysis Agent.",
-            $"Query context: {message}"
-        };
+            return false;
+        }
+
+        return normalizedMessage.StartsWith("trigger", StringComparison.Ordinal) ||
+               normalizedMessage.StartsWith("generate", StringComparison.Ordinal) ||
+               normalizedMessage.StartsWith("send", StringComparison.Ordinal) ||
+               normalizedMessage.StartsWith("create", StringComparison.Ordinal) ||
+               normalizedMessage.StartsWith("execute", StringComparison.Ordinal) ||
+               normalizedMessage.StartsWith("run", StringComparison.Ordinal);
     }
 }

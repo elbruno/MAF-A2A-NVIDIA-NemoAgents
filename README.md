@@ -10,7 +10,7 @@ This repository demonstrates a practical workflow:
 
 1. **Data Analysis Agent (NeMo)**: Receives raw business data (sales metrics, system performance, anomalies)
 2. **Analysis Results**: Detects trends, identifies anomalies, calculates KPIs using ML/statistics
-3. **Action Orchestration**: Recommendations automatically flow to the Action Agent
+3. **Action Orchestration**: Web UI requests NeMo analysis first, then optionally invokes the Action Agent for explicit action intents
 4. **Action Agent (MAF)**: Executes remediation—sends alerts, generates reports, triggers escalations
 5. **User Interface**: Chat-based interface for humans to request analysis and observe actions in real-time
 
@@ -157,6 +157,7 @@ graph TB
 ✅ **Analysis Display** - Structured presentation of insights  
 ✅ **Action Monitoring** - Track real-time action execution  
 ✅ **Service Health** - Dashboard showing agent status  
+✅ **NeMo-First Routing** - Chat responses come from NeMo analysis before optional MAF action execution  
 
 ### Aspire Orchestration
 
