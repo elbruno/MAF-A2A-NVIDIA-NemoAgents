@@ -1,8 +1,5 @@
-# NeMo Agent Toolkit - Latest Version
-nvidia-nemo-toolkit>=1.0.0
-
-# NeMo Agent Toolkit A2A Support
-nemo-agentic-rag>=1.0.0
+# NeMo Agent Toolkit CLI (nat)
+nat>=0.4.3
 
 # Core dependencies
 python-dotenv>=1.0.0
