@@ -1,6 +1,6 @@
 # MAF-A2A-NVIDIA-NemoAgents: Multi-Agent Data Analysis & Action System
 
-> A production-ready sample demonstrating **NVIDIA NeMo Agent Toolkit** + **Microsoft Agent Framework (MAF)** with **Agent-to-Agent (A2A)** communication, orchestrated with **Azure Aspire**.
+> A production-ready sample demonstrating **NVIDIA NeMo Agent Toolkit** + **Microsoft Agent Framework (MAF)** with **Agent-to-Agent (A2A)** communication, orchestrated with **Aspire**.
 
 ## 🎯 The Scenario: Data Analysis Meets Action Execution
 
@@ -89,7 +89,7 @@ graph TB
     end
     
     subgraph "Orchestration"
-        ASPIRE["Azure Aspire<br/>Health • Tracing • Discovery"]
+        ASPIRE["Aspire<br/>Health • Tracing • Discovery"]
     end
     
     UI -->|Chat Request| A2A
@@ -158,12 +158,14 @@ graph TB
 For comprehensive configuration options, environment variables, and provider setup, see **[Configuration Guide](docs/CONFIGURATION.md)**.
 
 Quick setup:
+
 ```bash
 cp .env.example .env
 # Edit .env with your LLM provider credentials (NVIDIA or Azure OpenAI)
 ```
 
 Key variables:
+
 - **LLM Provider**: `NVIDIA_API_KEY` or `AZURE_OPENAI_*` (choose one)
 - **Service Ports**: `NEMO_PORT=8088`, `MAF_PORT=5055`, `WEB_UI_PORT=5000`
 - **Observability**: `ENABLE_OTEL_TRACING=true`
@@ -185,6 +187,7 @@ Key variables:
 For comprehensive testing procedures including unit tests, integration tests, and performance testing, see **[Testing Guide](docs/TESTING.md)**.
 
 Quick start:
+
 ```bash
 # Run all tests
 dotnet test
@@ -200,6 +203,7 @@ dotnet test /p:CollectCoverage=true /p:CoverageFormat=opencover
 For detailed deployment procedures covering local Aspire, Docker, Azure Container Instances, and Kubernetes, see **[Deployment Guide](docs/DEPLOYMENT.md)**.
 
 Quick start:
+
 ```bash
 # Local development with Aspire (recommended)
 aspire start
@@ -233,7 +237,7 @@ docker-compose up --build
 
 ### Orchestration
 
-- **Azure Aspire** `10.0.0+`
+- **Azure Aspire** `13.0.0+`
 - **Docker** (optional)
 - **Kubernetes** (future roadmap)
 
@@ -252,6 +256,7 @@ Key highlights:
 - **Security**: Roadmap for TLS, mutual authentication, authorization
 
 See [Architecture Highlights](docs/ARCHITECTURE-HIGHLIGHTS.md) for complete details including:
+
 - Communication protocols and patterns
 - Component architecture diagrams
 - Data flow examples
