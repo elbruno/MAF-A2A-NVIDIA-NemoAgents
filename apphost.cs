@@ -1,4 +1,4 @@
-#:sdk Aspire.AppHost.Sdk@13.0.0
+#:sdk Aspire.AppHost.Sdk@13.3.3
 
 using Aspire.Hosting;
 
