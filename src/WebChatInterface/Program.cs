@@ -558,8 +558,8 @@ class ChatService : IChatService
         _logger = logger;
         var timeoutSeconds = int.TryParse(configuration["NEMO_CHAT_TIMEOUT_SECONDS"], out var parsedSeconds)
             ? parsedSeconds
-            : 20;
-        _nemoTimeout = TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 5, 120));
+            : 300;
+        _nemoTimeout = TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 10, 300));
     }
 
     public async Task<ChatResponse> ProcessChatAsync(ChatRequest request)
@@ -576,23 +576,6 @@ class ChatService : IChatService
         };
 
         var shouldTriggerAction = ShouldTriggerAction(normalized);
-        var nemoSucceeded = false;
-
-        try
-        {
-            var nemoReply = await _orchestrator.SendNemoMessageAsync(request.Message, request.SessionId).WaitAsync(_nemoTimeout);
-            response.RespondedBy = "NeMo Data Analysis Agent";
-            response.Content = nemoReply;
-            response.AnalysisInsights = new List<string>
-            {
-                "Request routed to NeMo Data Analysis Agent."
-            };
-            nemoSucceeded = true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "NeMo analysis failed for chat request");
-        }
 
         if (shouldTriggerAction)
         {
@@ -612,12 +595,13 @@ class ChatService : IChatService
                     ? "Action workflow processed by MAF Action Agent."
                     : actionResult.Details;
 
-                response.RespondedBy = nemoSucceeded ? "NeMo + MAF Orchestrator" : "MAF Action Agent";
-                response.Content = nemoSucceeded
-                    ? $"{response.Content}\n\nMAF action result: {actionDetails}"
-                    : actionDetails;
+                response.RespondedBy = "MAF Action Agent";
+                response.Content = actionDetails;
                 response.ActionsExecuted = new List<ActionResult> { actionResult };
-                response.AnalysisInsights.Add("Action workflow executed through MAF Action Agent.");
+                response.AnalysisInsights = new List<string>
+                {
+                    "Action workflow executed through MAF Action Agent."
+                };
                 return response;
             }
             catch (Exception ex)
@@ -626,9 +610,20 @@ class ChatService : IChatService
             }
         }
 
-        if (nemoSucceeded)
+        try
         {
+            var nemoReply = await _orchestrator.SendNemoMessageAsync(request.Message, request.SessionId).WaitAsync(_nemoTimeout);
+            response.RespondedBy = "NeMo Data Analysis Agent";
+            response.Content = nemoReply;
+            response.AnalysisInsights = new List<string>
+            {
+                "Request routed to NeMo Data Analysis Agent."
+            };
             return response;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "NeMo analysis failed for chat request");
         }
 
         response.RespondedBy = "System";

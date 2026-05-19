@@ -58,7 +58,10 @@
             <div class="row">
                 <div class="col-md-6">
                     <div class="card">
-                        <div class="card-header">Service Status</div>
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Service Status</span>
+                            <button type="button" class="btn btn-sm btn-outline-light" id="refreshStatusBtn">Refresh</button>
+                        </div>
                         <div class="card-body">
                             <small id="serviceStatus" class="text-muted">Loading...</small>
                         </div>
@@ -86,11 +89,13 @@
         const chatMessagesDiv = document.getElementById('chatMessages');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
+        const refreshStatusBtn = document.getElementById('refreshStatusBtn');
         const predefinedBtns = document.querySelectorAll('.predefined-btn');
         const sessionStorageKey = 'mafNemoChatSessionId';
 
         // Handle send button click
         sendBtn.addEventListener('click', () => sendMessage());
+        refreshStatusBtn.addEventListener('click', () => loadServiceStatus());
         messageInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
@@ -125,7 +130,7 @@
                     const responder = data.respondedBy || 'Agent';
                     addMessageToChat('agent', responder, data.content || 'No response', data.responseTime);
                     
-                    if (data.analysisInsights && data.analysisInsights.length > 0) {
+                    if (responder !== 'System' && data.analysisInsights && data.analysisInsights.length > 0) {
                         addMessageToChat('system', 'System', 'Insights: ' + data.analysisInsights.join(', '), new Date());
                     }
                 } else {
@@ -229,7 +234,6 @@
 
         // Initialize
         loadServiceStatus();
-        setInterval(loadServiceStatus, 10000); // Refresh every 10 seconds
     </script>
     <style>
         .predefined-btn {
