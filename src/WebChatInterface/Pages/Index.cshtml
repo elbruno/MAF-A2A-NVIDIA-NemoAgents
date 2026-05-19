@@ -11,9 +11,9 @@
             <p class="lead">Chat with NeMo Data Analysis and MAF Action agents</p>
             
             <!-- Chat Messages Area -->
-            <div class="card mb-4" style="height: 400px; overflow-y: auto;" id="chatMessages">
-                <div class="card-body">
-                    <p class="text-muted text-center">Chat history will appear here...</p>
+            <div class="card mb-4 chat-container" id="chatScroll">
+                <div class="card-body" id="chatMessages">
+                    <p class="text-muted text-center chat-placeholder">Chat history will appear here...</p>
                 </div>
             </div>
 
@@ -69,8 +69,8 @@
                         <div class="card-header">Configuration</div>
                         <div class="card-body">
                             <small id="configStatus" class="text-muted">
-                                NeMo: <span id="nemoHost">-</span>:<span id="nemoPort">-</span><br/>
-                                MAF: <span id="mafHost">-</span>:<span id="mafPort">-</span>
+                                NeMo URL: <span id="nemoEndpoint">-</span><br/>
+                                MAF URL: <span id="mafEndpoint">-</span>
                             </small>
                         </div>
                     </div>
@@ -82,6 +82,7 @@
 
 @section Scripts {
     <script>
+        const chatScrollDiv = document.getElementById('chatScroll');
         const chatMessagesDiv = document.getElementById('chatMessages');
         const messageInput = document.getElementById('messageInput');
         const sendBtn = document.getElementById('sendBtn');
@@ -98,7 +99,7 @@
             btn.addEventListener('click', () => {
                 const question = btn.getAttribute('data-question');
                 messageInput.value = question;
-                sendMessage();
+                messageInput.focus();
             });
         });
 
@@ -107,7 +108,7 @@
             if (!message) return;
 
             // Add user message to chat
-            addMessageToChat('user', message);
+            addMessageToChat('user', 'You', message, new Date());
             messageInput.value = '';
 
             try {
@@ -120,41 +121,52 @@
 
                 if (response.ok) {
                     const data = await response.json();
-                    addMessageToChat('agent', data.content || 'No response');
+                    addMessageToChat('agent', 'NeMo Data Analysis Agent', data.content || 'No response', data.responseTime);
                     
                     if (data.analysisInsights && data.analysisInsights.length > 0) {
-                        addMessageToChat('system', 'Insights: ' + data.analysisInsights.join(', '));
+                        addMessageToChat('system', 'System', 'Insights: ' + data.analysisInsights.join(', '), new Date());
                     }
                 } else {
-                    addMessageToChat('system', 'Error: ' + response.statusText);
+                    addMessageToChat('system', 'System', 'Error: ' + response.statusText, new Date());
                 }
             } catch (error) {
-                addMessageToChat('system', 'Error: ' + error.message);
+                addMessageToChat('system', 'System', 'Error: ' + error.message, new Date());
             }
         }
 
-        function addMessageToChat(role, content) {
-            const messageEl = document.createElement('div');
-            messageEl.className = 'mb-3';
-            
-            let roleClass = 'text-primary';
-            let roleIcon = '👤';
-            
-            if (role === 'agent') {
-                roleClass = 'text-success';
-                roleIcon = '🤖';
-            } else if (role === 'system') {
-                roleClass = 'text-warning';
-                roleIcon = 'ℹ️';
+        function addMessageToChat(role, actor, content, timestamp) {
+            const placeholder = chatMessagesDiv.querySelector('.chat-placeholder');
+            if (placeholder) {
+                placeholder.remove();
             }
-            
-            messageEl.innerHTML = `
-                <strong class="${roleClass}">${roleIcon} ${role.toUpperCase()}:</strong>
-                <p>${escapeHtml(content)}</p>
+
+            const rowEl = document.createElement('div');
+            rowEl.className = `chat-row ${role === 'user' ? 'chat-row-user' : 'chat-row-other'}`;
+
+            const timestampText = formatTimestamp(timestamp);
+            const roleBadgeClass = role === 'user' ? 'chat-role-user' : (role === 'agent' ? 'chat-role-agent' : 'chat-role-system');
+
+            rowEl.innerHTML = `
+                <div class="chat-bubble ${role === 'user' ? 'chat-bubble-user' : 'chat-bubble-other'}">
+                    <div class="chat-meta">
+                        <span class="chat-role ${roleBadgeClass}">${escapeHtml(actor)}</span>
+                        <span class="chat-timestamp">${escapeHtml(timestampText)}</span>
+                    </div>
+                    <div class="chat-content">${escapeHtml(content)}</div>
+                </div>
             `;
-            
-            chatMessagesDiv.appendChild(messageEl);
-            chatMessagesDiv.scrollTop = chatMessagesDiv.scrollHeight;
+
+            chatMessagesDiv.appendChild(rowEl);
+            chatScrollDiv.scrollTop = chatScrollDiv.scrollHeight;
+        }
+
+        function formatTimestamp(timestamp) {
+            const date = timestamp ? new Date(timestamp) : new Date();
+            if (Number.isNaN(date.getTime())) {
+                return new Date().toLocaleString();
+            }
+
+            return date.toLocaleString();
         }
 
         function escapeHtml(text) {
@@ -173,9 +185,32 @@
                         `<span class="badge ${s.status === 'Running' ? 'bg-success' : 'bg-danger'}">${s.serviceName}: ${s.status}</span>`
                     ).join(' ');
                     document.getElementById('serviceStatus').innerHTML = statusHtml || 'No services found';
+                    loadConfigStatus(services);
                 }
             } catch (error) {
                 document.getElementById('serviceStatus').innerHTML = 'Error loading status: ' + error.message;
+                loadConfigStatus([]);
+            }
+        }
+
+        function loadConfigStatus(services) {
+            const nemoService = services.find(s => s.serviceName && s.serviceName.toLowerCase().includes('nemo'));
+            const mafService = services.find(s => s.serviceName && s.serviceName.toLowerCase().includes('maf'));
+
+            setEndpoint('nemoEndpoint', nemoService ? nemoService.endpoint : null);
+            setEndpoint('mafEndpoint', mafService ? mafService.endpoint : null);
+        }
+
+        function setEndpoint(elementId, endpoint) {
+            const element = document.getElementById(elementId);
+            if (!element) {
+                return;
+            }
+
+            if (endpoint) {
+                element.innerHTML = `<a href="${escapeHtml(endpoint)}" target="_blank" rel="noopener noreferrer">${escapeHtml(endpoint)}</a>`;
+            } else {
+                element.textContent = 'Unavailable';
             }
         }
 
@@ -198,6 +233,65 @@
         .btn-group-vertical {
             display: flex;
             flex-direction: column;
+        }
+        .chat-container {
+            height: 400px;
+            overflow-y: auto;
+        }
+        .chat-row {
+            display: flex;
+            margin-bottom: 12px;
+        }
+        .chat-row-user {
+            justify-content: flex-end;
+        }
+        .chat-row-other {
+            justify-content: flex-start;
+        }
+        .chat-bubble {
+            max-width: 78%;
+            padding: 10px 12px;
+            border-radius: 12px;
+            border: 1px solid #dee2e6;
+        }
+        .chat-bubble-user {
+            background-color: #e8f0ff;
+            border-color: #b8cdfa;
+        }
+        .chat-bubble-other {
+            background-color: #f8f9fa;
+            border-color: #d7dce0;
+        }
+        .chat-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 6px;
+        }
+        .chat-role {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+        }
+        .chat-role-user {
+            color: #2f61c6;
+        }
+        .chat-role-agent {
+            color: #1f8a55;
+        }
+        .chat-role-system {
+            color: #8b6a12;
+        }
+        .chat-timestamp {
+            color: #6c757d;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+        .chat-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
         }
     </style>
 }
