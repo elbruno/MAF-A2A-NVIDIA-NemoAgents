@@ -294,7 +294,7 @@ class AgentOrchestrator : IAgentOrchestrator
             {
                 ServiceName = "NeMo Data Analysis Agent",
                 Status = "Running",
-                Endpoint = nemoDiscoveryEndpoint,
+                Endpoint = string.IsNullOrWhiteSpace(card.Endpoint) ? nemoDiscoveryEndpoint : card.Endpoint,
                 AgentCard = card,
                 LastChecked = DateTime.UtcNow
             });
@@ -317,7 +317,7 @@ class AgentOrchestrator : IAgentOrchestrator
             {
                 ServiceName = "MAF Action Agent",
                 Status = "Running",
-                Endpoint = mafDiscoveryEndpoint,
+                Endpoint = string.IsNullOrWhiteSpace(card.Endpoint) ? mafDiscoveryEndpoint : card.Endpoint,
                 AgentCard = card,
                 LastChecked = DateTime.UtcNow
             });
@@ -550,11 +550,16 @@ class ChatService : IChatService
 {
     private readonly IAgentOrchestrator _orchestrator;
     private readonly ILogger<ChatService> _logger;
+    private readonly TimeSpan _nemoTimeout;
 
-    public ChatService(IAgentOrchestrator orchestrator, ILogger<ChatService> logger)
+    public ChatService(IAgentOrchestrator orchestrator, ILogger<ChatService> logger, IConfiguration configuration)
     {
         _orchestrator = orchestrator;
         _logger = logger;
+        var timeoutSeconds = int.TryParse(configuration["NEMO_CHAT_TIMEOUT_SECONDS"], out var parsedSeconds)
+            ? parsedSeconds
+            : 20;
+        _nemoTimeout = TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 5, 120));
     }
 
     public async Task<ChatResponse> ProcessChatAsync(ChatRequest request)
@@ -575,7 +580,7 @@ class ChatService : IChatService
 
         try
         {
-            var nemoReply = await _orchestrator.SendNemoMessageAsync(request.Message, request.SessionId);
+            var nemoReply = await _orchestrator.SendNemoMessageAsync(request.Message, request.SessionId).WaitAsync(_nemoTimeout);
             response.RespondedBy = "NeMo Data Analysis Agent";
             response.Content = nemoReply;
             response.AnalysisInsights = new List<string>
@@ -627,10 +632,10 @@ class ChatService : IChatService
         }
 
         response.RespondedBy = "System";
-        response.Content = "NeMo Data Analysis Agent is unavailable or returned an invalid response.";
+        response.Content = $"NeMo Data Analysis Agent did not return a response within {_nemoTimeout.TotalSeconds:0} seconds.";
         response.AnalysisInsights = new List<string>
         {
-            "Failed to retrieve NeMo analysis response."
+            "NeMo analysis timed out or returned an invalid response."
         };
         return response;
     }
