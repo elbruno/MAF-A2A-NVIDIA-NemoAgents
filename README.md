@@ -76,24 +76,19 @@ graph TB
 - **One LLM Provider** (NVIDIA API or Azure OpenAI)
 - **Aspire CLI** (optional, for orchestrated startup): <https://aspire.dev/get-started/install-cli/>
 
-### Step 1: Clone & Configure
+### Step 1: Clone
 
 ```bash
 git clone https://github.com/yourusername/MAF-A2A-NVIDIA-NemoAgents.git
 cd MAF-A2A-NVIDIA-NemoAgents
-
-# Copy environment template
-cp .env.example .env
-
-# Edit .env and add your LLM credentials:
-# Option A: NVIDIA API
-# NVIDIA_API_KEY=sk-your-key-here
-
-# Option B: Azure OpenAI
-# AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-# AZURE_OPENAI_DEPLOYMENT_NAME=gpt-5-mini
-# AZURE_OPENAI_API_KEY=your-api-key
 ```
+
+Configure Aspire-managed secrets for one provider before startup:
+
+- **NVIDIA**: `NVIDIA_API_KEY`
+- **Azure OpenAI**: `AZURE_OPENAI_ENDPOINT`, `AZURE_OPENAI_DEPLOYMENT_NAME`, `AZURE_OPENAI_API_KEY`
+
+If you are running without Aspire, use the manual setup flow in **[Manual Startup Guide](docs/MANUAL-STARTUP.md)**.
 
 ### Step 2: Install Dependencies
 
@@ -108,7 +103,7 @@ pip install -r src/NemoDataAnalysisAgent/nemo/requirements.txt
 
 ### Step 3: Run the System
 
-#### Option A: Using Aspire (Recommended)
+Using Aspire (recommended):
 
 ```bash
 # Single command to start everything with orchestration
@@ -117,20 +112,6 @@ aspire start
 # Open Aspire Dashboard at http://localhost:18888
 # Click on each service to view logs and health
 ```
-
-#### Option B: Manual Startup (3 terminals)
-
-For detailed instructions on starting components manually, see **[Manual Startup Guide](docs/MANUAL-STARTUP.md)**.
-
-Quick overview:
-- **Terminal 1**: `python -m nat a2a serve --config_file .\nemo\workflow.yml --host 127.0.0.1 --port 8088`
-- **Terminal 2**: `dotnet run --project src/MafActionAgent`
-- **Terminal 3**: `dotnet run --project src/WebChatInterface`
-
-Services available at:
-- **Web UI**: <http://localhost:5000>
-- **NeMo Agent**: <http://127.0.0.1:8088/.well-known/agent-card.json>
-- **MAF Agent**: <http://127.0.0.1:5055/health>
 
 ---
 
