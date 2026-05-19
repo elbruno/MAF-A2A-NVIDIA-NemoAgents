@@ -68,11 +68,11 @@ All three endpoints should respond successfully. If any return errors, check the
 If you see "port already in use" errors:
 
 ```powershell
-# Find process using port 8088
-netstat -ano | findstr :8088
+# Check for listeners on NeMo/MAF/Web UI ports
+.\scripts\check-port-conflicts.ps1
 
-# Kill the process (replace PID with the actual process ID)
-taskkill /PID <PID> /F
+# Stop only the detected listeners
+.\scripts\stop-port-conflicts.ps1 -Force
 ```
 
 ### Python Module Not Found

@@ -88,6 +88,10 @@ When running with `aspire start`:
 # Aspire Dashboard endpoint (auto-configured in AppHost)
 ASPIRE_DASHBOARD_OTLP_HTTP_ENDPOINT_URL=http://localhost:18889/api/otlp/v1/traces
 ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:4317
+
+# Runtime service ports are injected by Aspire to avoid port collisions:
+# NEMO_PORT=<dynamic>
+# MAF_PORT=<dynamic>
 ```
 
 ## Advanced Configuration
@@ -95,6 +99,7 @@ ASPIRE_DASHBOARD_OTLP_ENDPOINT_URL=http://localhost:4317
 ### NeMo Workflow Config
 
 The NeMo agent uses a workflow YAML file located at `src/NemoDataAnalysisAgent/nemo/workflow.yml`.
+Custom analysis functions are registered by the local package in `src/NemoDataAnalysisAgent/src/nemo_data_analysis_agent`.
 
 Key settings:
 - **Tools**: Data analysis tools (time-series, anomaly detection, metrics)
@@ -104,14 +109,16 @@ Key settings:
 
 ### Customizing Models
 
-To use a specific LLM model, update `workflow.yml`:
+To use a specific LLM model, update the `llms` section in `workflow.yml`:
 
 ```yaml
-llm_config:
-  provider: "nvidia"  # or "azure_openai"
-  model: "meta/llama-2-70b-chat"
-  temperature: 0.3
+llms:
+  nvidia_llm:
+    _type: nim
+    model_name: meta/llama-3.1-70b-instruct
+    temperature: 0.3
 ```
+Then point `workflow.llm_name` at the LLM entry you want to use.
 
 ### Health Check Endpoints
 

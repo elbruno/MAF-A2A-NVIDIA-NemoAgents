@@ -25,11 +25,10 @@ var nemo = builder.AddExecutable(
         {
             "-NoProfile",
             "-Command",
-            "if (Test-Path '.\\.venv\\Scripts\\nat.exe') { & '.\\.venv\\Scripts\\nat.exe' a2a serve --config_file .\\src\\NemoDataAnalysisAgent\\nemo\\workflow.yml --host 127.0.0.1 --port 8088 --name \"nemo-data-analysis-agent\" } else { nat a2a serve --config_file .\\src\\NemoDataAnalysisAgent\\nemo\\workflow.yml --host 127.0.0.1 --port 8088 --name \"nemo-data-analysis-agent\" }"
+            "if (Test-Path '.\\.venv\\Scripts\\nat.exe') { & '.\\.venv\\Scripts\\nat.exe' a2a serve --config_file .\\src\\NemoDataAnalysisAgent\\nemo\\workflow.yml --host $env:NEMO_HOST --port $env:NEMO_PORT --name \"nemo-data-analysis-agent\" } else { nat a2a serve --config_file .\\src\\NemoDataAnalysisAgent\\nemo\\workflow.yml --host $env:NEMO_HOST --port $env:NEMO_PORT --name \"nemo-data-analysis-agent\" }"
         })
-    .WithHttpEndpoint(name: "http", env: "NEMO_PORT", port: 8088)
+    .WithHttpEndpoint(name: "http", env: "NEMO_PORT")
     .WithEnvironment("NEMO_HOST", "127.0.0.1")
-    .WithEnvironment("NEMO_PORT", "8088")
     .WithEnvironment("NVIDIA_API_KEY", nvidiaApiKey)
     .WithEnvironment("AZURE_OPENAI_ENDPOINT", azureOpenAiEndpoint)
     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", azureOpenAiDeploymentName)
@@ -39,7 +38,7 @@ var nemo = builder.AddExecutable(
     .WithEnvironment("NEMO_LOG_LEVEL", "INFO")
     .WithUrlForEndpoint("http", url =>
     {
-        url.Url = "http://127.0.0.1:8088/.well-known/agent-card.json";
+        url.Url = "/.well-known/agent-card.json";
         url.DisplayText = "Agent Card";
     });
 
@@ -54,9 +53,8 @@ var mafAgent = builder.AddExecutable(
             "--project",
             ".\\src\\MafActionAgent\\MafActionAgent.csproj"
         })
-    .WithHttpEndpoint(name: "http", env: "MAF_PORT", port: 5055)
+    .WithHttpEndpoint(name: "http", env: "MAF_PORT")
     .WithEnvironment("MAF_HOST", "127.0.0.1")
-    .WithEnvironment("MAF_PORT", "5055")
     .WithEnvironment("NEMO_A2A_ENDPOINT", nemo.GetEndpoint("http"))
     .WithEnvironment("NVIDIA_API_KEY", nvidiaApiKey)
     .WithEnvironment("AZURE_OPENAI_ENDPOINT", azureOpenAiEndpoint)

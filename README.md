@@ -58,11 +58,10 @@ python -m venv .venv
 # Linux/macOS
 source .venv/bin/activate
 
-# Install Python dependencies for NeMo
+# Install Python dependencies for NeMo and the local NAT component package
 pip install -r requirements.txt
 
-# NeMo Toolkit CLI setup (required for running NeMo agent)
-# Already included in requirements.txt above
+# This also installs the local NeMo data-analysis component in editable mode
 ```
 
 ### Step 3: Run the System
@@ -75,6 +74,14 @@ aspire start
 
 # Open Aspire Dashboard at http://localhost:18888
 # Click on each service to view logs and health
+# Aspire assigns NeMo/MAF runtime ports automatically to avoid local port collisions
+```
+
+If startup fails because local ports are already occupied:
+
+```powershell
+.\scripts\check-port-conflicts.ps1
+.\scripts\stop-port-conflicts.ps1 -Force
 ```
 
 ---
@@ -116,8 +123,8 @@ graph TB
 
 | Component | Role | Port | Technology |
 |-----------|------|------|-----------|
-| **NeMo Agent** | Data Analysis | 8088 | Python + NVIDIA NeMo Toolkit |
-| **MAF Agent** | Action Execution | 5055 | .NET 10 + Microsoft Agent Framework |
+| **NeMo Agent** | Data Analysis | Dynamic (Aspire) / 8088 (manual startup) | Python + NVIDIA NeMo Toolkit |
+| **MAF Agent** | Action Execution | Dynamic (Aspire) / 5055 (manual startup) | .NET 10 + Microsoft Agent Framework |
 | **Web UI** | User Interface | 5000 | Blazor + ASP.NET Core |
 | **Aspire** | Orchestration | Dashboard | Service discovery, health, OTEL tracing |
 
