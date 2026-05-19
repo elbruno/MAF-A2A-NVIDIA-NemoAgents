@@ -1,0 +1,111 @@
+# NeMo Agent Toolkit Workflow - Data Analysis Agent (Azure OpenAI)
+# This workflow exposes a data analysis agent via A2A (Agent-to-Agent) communication
+
+definitions:
+  models:
+    azure_llm:
+      type: "AzureOpenAIModel"
+      provider: "azure_openai"
+      config:
+        endpoint: "${AZURE_OPENAI_ENDPOINT}"
+        api_key: "${AZURE_OPENAI_API_KEY}"
+        model: "gpt-4"
+        deployment_name: "${AZURE_OPENAI_DEPLOYMENT_NAME}"
+        api_version: "${AZURE_OPENAI_API_VERSION:2025-04-01-preview}"
+        temperature: 0.2
+        max_tokens: 1024
+
+  tools:
+    analyze_time_series:
+      type: "ToolReference"
+      description: "Analyze time-series data to detect trends and anomalies"
+      config:
+        source: "tools.data_analysis:analyze_time_series_data"
+
+    detect_anomalies:
+      type: "ToolReference"
+      description: "Detect statistical anomalies in data streams"
+      config:
+        source: "tools.data_analysis:detect_data_anomalies"
+
+    calculate_metrics:
+      type: "ToolReference"
+      description: "Calculate statistical metrics and KPIs"
+      config:
+        source: "tools.data_analysis:calculate_metrics"
+
+    generate_insights:
+      type: "ToolReference"
+      description: "Generate business insights from data analysis"
+      config:
+        source: "tools.data_analysis:generate_insights"
+
+  agents:
+    data_analysis_agent:
+      type: "Agent"
+      config:
+        model: "azure_llm"
+        name: "Data Analysis Agent"
+        description: "Analyzes business data, detects trends, identifies anomalies, and generates insights"
+        tools:
+          - "analyze_time_series"
+          - "detect_anomalies"
+          - "calculate_metrics"
+          - "generate_insights"
+        memory:
+          type: "ConversationMemory"
+          config:
+            max_turns: 20
+        system_prompt: |
+          You are a professional data analysis expert. Your role is to:
+          1. Analyze provided business data using available tools
+          2. Identify trends, patterns, and anomalies
+          3. Calculate relevant metrics and KPIs
+          4. Generate actionable insights
+          5. Provide clear recommendations for the action agent
+          
+          Always explain your analysis process and be specific about findings.
+          Format results as structured data when possible.
+
+  routers:
+    analysis_router:
+      type: "Router"
+      config:
+        routing_strategy: "direct"
+        routes:
+          - agent: "data_analysis_agent"
+            description: "Route analysis requests to the data analysis agent"
+
+general:
+  name: "Data Analysis System"
+  description: "NVIDIA NeMo Agent Toolkit - Data Analysis Agent with A2A support (Azure OpenAI)"
+  
+  a2a:
+    enabled: true
+    server:
+      host: "${NEMO_HOST:127.0.0.1}"
+      port: "${NEMO_PORT:8088}"
+      route_prefix: "/"
+      
+  telemetry:
+    tracing:
+      enabled: true
+      otelcollector:
+        enabled: true
+        endpoint: "${NEMO_OTEL_TRACES_ENDPOINT:http://localhost:4317}"
+      
+  logging:
+    level: "${NEMO_LOG_LEVEL:INFO}"
+    format: "json"
+    
+  health_checks:
+    enabled: true
+    liveness_path: "/health/live"
+    readiness_path: "/health/ready"
+    startup_path: "/health/startup"
+
+routes:
+  - path: "/analyze"
+    router: "analysis_router"
+    method: "POST"
+    description: "Submit data for analysis"

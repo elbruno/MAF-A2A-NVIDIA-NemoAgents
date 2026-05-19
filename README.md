@@ -1,0 +1,363 @@
+# MAF-A2A-NVIDIA-NemoAgents: Multi-Agent Data Analysis & Action System
+
+> A production-ready sample demonstrating **NVIDIA NeMo Agent Toolkit** + **Microsoft Agent Framework (MAF)** with **Agent-to-Agent (A2A)** communication, orchestrated with **Azure Aspire**.
+
+## 🎯 The Scenario: Data Analysis Meets Action Execution
+
+Modern enterprises need systems that can **analyze complex data in real-time and immediately take action** without manual handoffs.
+
+This repository demonstrates a practical workflow:
+
+1. **Data Analysis Agent (NeMo)**: Receives raw business data (sales metrics, system performance, anomalies)
+2. **Analysis Results**: Detects trends, identifies anomalies, calculates KPIs using ML/statistics
+3. **Action Orchestration**: Recommendations automatically flow to the Action Agent
+4. **Action Agent (MAF)**: Executes remediation—sends alerts, generates reports, triggers escalations
+5. **User Interface**: Chat-based interface for humans to request analysis and observe actions in real-time
+
+### Why Two Agents?
+- **Separation of Concerns**: Data analysis expertise ≠ action execution expertise
+- **Scalability**: Agents can be deployed independently, scaled horizontally
+- **Reliability**: Failure in one agent doesn't cascade; degraded mode still possible
+- **Vendor Flexibility**: Mix and match toolkits (NeMo for analysis, MAF for orchestration)
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+graph TB
+    subgraph "Web Layer"
+        UI["Chat UI<br/>(Blazor + ASP.NET)"]
+    end
+    
+    subgraph "Agent Layer"
+        NEMO["NeMo Data Analysis Agent<br/>(Python + Toolkit)<br/>Trends • Anomalies • Metrics"]
+        MAF["MAF Action Agent<br/>(.NET + Framework)<br/>Alerts • Reports • Actions"]
+    end
+    
+    subgraph "Communication"
+        A2A["A2A Protocol<br/>(JSON-RPC)<br/>Service Discovery"]
+    end
+    
+    subgraph "Orchestration"
+        ASPIRE["Azure Aspire<br/>Health • Tracing • Discovery"]
+    end
+    
+    UI -->|Chat Request| A2A
+    A2A -->|Analysis Request| NEMO
+    NEMO -->|Analysis Results| A2A
+    A2A -->|Action Trigger| MAF
+    MAF -->|Action Status| A2A
+    A2A -->|Display Results| UI
+    
+    ASPIRE -.->|Health Checks<br/>Service Discovery<br/>OTEL Tracing| NEMO
+    ASPIRE -.->|Health Checks<br/>Service Discovery<br/>OTEL Tracing| MAF
+    ASPIRE -.->|Health Checks<br/>Service Discovery<br/>OTEL Tracing| UI
+```
+
+### Key Integration Points
+
+| Component | Role | Port | Technology |
+|-----------|------|------|-----------|
+| **NeMo Agent** | Data Analysis | 8088 | Python + NVIDIA NeMo Toolkit |
+| **MAF Agent** | Action Execution | 5055 | .NET 10 + Microsoft Agent Framework |
+| **Web UI** | User Interface | 5000 | Blazor + ASP.NET Core |
+| **Aspire** | Orchestration | Dashboard | Service discovery, health, OTEL tracing |
+
+---
+
+## ⚡ Quick Start (3 Steps)
+
+### Prerequisites
+- **Python 3.10+** with pip
+- **.NET 10 SDK** (download from https://dotnet.microsoft.com/download)
+- **One LLM Provider** (NVIDIA API or Azure OpenAI)
+- **Aspire CLI** (optional, for orchestrated startup): https://aspire.dev/get-started/install-cli/
+
+### Step 1: Clone & Configure
+
+```bash
+git clone https://github.com/yourusername/MAF-A2A-NVIDIA-NemoAgents.git
+cd MAF-A2A-NVIDIA-NemoAgents
+
+# Copy environment template
+cp .env.example .env
+
+# Edit .env and add your LLM credentials:
+# Option A: NVIDIA API
+# NVIDIA_API_KEY=sk-your-key-here
+
+# Option B: Azure OpenAI
+# AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+# AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4
+# AZURE_OPENAI_API_KEY=your-api-key
+```
+
+### Step 2: Install Dependencies
+
+```bash
+# Install Python dependencies for NeMo
+pip install -r requirements.txt
+pip install -r src/NemoDataAnalysisAgent/nemo/requirements.txt
+
+# NeMo Toolkit CLI setup (required for running NeMo agent)
+# Already included in requirements.txt above
+```
+
+### Step 3: Run the System
+
+#### Option A: Using Aspire (Recommended)
+```bash
+# Single command to start everything with orchestration
+aspire start
+
+# Open Aspire Dashboard at http://localhost:18888
+# Click on each service to view logs and health
+```
+
+#### Option B: Manual Startup (3 terminals)
+
+**Terminal 1 - Start NeMo Agent:**
+```powershell
+Set-Location .\src\NemoDataAnalysisAgent
+python -m nat a2a serve --config_file .\nemo\workflow.yml --host 127.0.0.1 --port 8088
+```
+
+**Terminal 2 - Start MAF Agent:**
+```bash
+dotnet run --project src/MafActionAgent
+```
+
+**Terminal 3 - Start Web UI:**
+```bash
+dotnet run --project src/WebChatInterface
+```
+
+Once all three are running:
+- **Web UI**: http://localhost:5000
+- **NeMo Agent**: http://127.0.0.1:8088/.well-known/agent-card.json
+- **MAF Agent**: http://127.0.0.1:5055/health
+
+---
+
+## 📋 Features
+
+### NeMo Data Analysis Agent
+✅ **Time-Series Analysis** - Trend detection using statistical methods  
+✅ **Anomaly Detection** - Z-score-based outlier identification  
+✅ **Metric Calculation** - Comprehensive statistical summaries (mean, percentiles, variance)  
+✅ **Insight Generation** - AI-driven business recommendations  
+✅ **A2A Exposure** - JSON-RPC endpoint for cross-agent communication  
+✅ **Dual Provider Support** - NVIDIA API (NIM) + Azure OpenAI  
+
+### MAF Action Agent
+✅ **Action Execution** - Pluggable action handlers  
+✅ **Alert Triggering** - Multi-level alerts (Critical/High/Medium/Low)  
+✅ **Report Generation** - Async report creation  
+✅ **A2A Integration** - Agent discovery + JSON-RPC communication  
+✅ **Health Checks** - Liveness, readiness, startup probes  
+✅ **OpenTelemetry** - Full distributed tracing support  
+
+### Web Chat Interface
+✅ **Real-Time Chat** - Interactive multi-turn conversations  
+✅ **Agent Discovery** - Auto-discovery of NeMo + MAF agents  
+✅ **Analysis Display** - Structured presentation of insights  
+✅ **Action Monitoring** - Track real-time action execution  
+✅ **Service Health** - Dashboard showing agent status  
+
+### Aspire Orchestration
+✅ **Service Discovery** - Automatic agent endpoint registration  
+✅ **Dependency Management** - Ensure startup ordering (NeMo → MAF → Web UI)  
+✅ **Health Monitoring** - Continuous liveness & readiness checks  
+✅ **Distributed Tracing** - OTEL correlation across all services  
+✅ **Unified Logs** - Single pane of glass for all service logs  
+
+---
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```bash
+# LLM Provider (choose one)
+NVIDIA_API_KEY=sk-...                          # For NVIDIA NIM
+AZURE_OPENAI_ENDPOINT=https://...              # For Azure
+AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4             # For Azure
+AZURE_OPENAI_API_KEY=...                       # For Azure
+
+# Service Endpoints
+NEMO_HOST=127.0.0.1
+NEMO_PORT=8088
+MAF_HOST=127.0.0.1
+MAF_PORT=5055
+WEB_UI_HOST=127.0.0.1
+WEB_UI_PORT=5000
+
+# Observability
+ENABLE_OTEL_TRACING=true
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
+```
+
+See `.env.example` for all available options.
+
+---
+
+## 📚 Documentation
+
+- **[Architecture Guide](docs/README-ARCHITECTURE.md)** - Deep dive into system design
+- **[Setup & Deployment](docs/SETUP-GUIDE.md)** - Detailed installation & troubleshooting
+- **[API Reference](docs/api-reference.md)** - Complete endpoint documentation
+- **[Contributing](docs/development/CONTRIBUTING.md)** - Development guidelines
+- **[ADRs](docs/development/architecture-decisions.md)** - Architecture decision records
+
+---
+
+## 🧪 Testing
+
+```bash
+# Run all tests
+dotnet test
+
+# Run specific test suite
+dotnet test src/Tests/Integration.Tests
+
+# Generate coverage report
+dotnet test /p:CollectCoverage=true /p:CoverageFormat=opencover
+```
+
+---
+
+## 🚀 Deployment
+
+### Local Development with Aspire
+```bash
+aspire start
+```
+
+### Docker (Coming Soon)
+```bash
+docker-compose up --build
+```
+
+### Azure Container Instances (Coming Soon)
+```bash
+./scripts/deploy-aci.ps1 -ResourceGroup my-rg -Environment staging
+```
+
+---
+
+## 🛠️ Tech Stack
+
+### NeMo Agent
+- **NVIDIA NeMo Agent Toolkit** `1.0.0+`
+- **Python** `3.10+`
+- **FastAPI** - HTTP server
+- **pandas/numpy/scikit-learn** - Data analysis
+- **OpenTelemetry** - Distributed tracing
+
+### MAF Agent & Web UI
+- **.NET 10** - Runtime
+- **ASP.NET Core** - Web framework
+- **Microsoft Agent Framework** `1.0.0+`
+- **Blazor** - Interactive UI
+- **OpenTelemetry** - Distributed tracing
+
+### Orchestration
+- **Azure Aspire** `10.0.0+`
+- **Docker** (optional)
+- **Kubernetes** (future roadmap)
+
+---
+
+## 📊 Architecture Highlights
+
+### Agent-to-Agent Communication
+- **Protocol**: JSON-RPC 2.0 over HTTP
+- **Discovery**: Agent Card endpoint (`.well-known/agent-card.json`)
+- **Auth**: TLS 1.3 + service identity (future roadmap)
+- **Resilience**: Retry logic + circuit breakers
+
+### Observability
+- **Traces**: Distributed tracing with OpenTelemetry
+- **Metrics**: Service-level metrics (latency, throughput, errors)
+- **Logs**: Structured JSON logging with correlation IDs
+- **Health**: Liveness, readiness, startup probes
+
+### Data Flow Example
+```
+User Chat: "Analyze Q4 sales and trigger alerts if anomalies found"
+    ↓
+Web UI → NeMo Agent (A2A: analysis request)
+    ↓
+NeMo: Time-series analysis, anomaly detection, insights generation
+    ↓
+NeMo → Web UI (A2A: analysis results)
+    ↓
+Web UI → MAF Agent (A2A: trigger alert action)
+    ↓
+MAF: Alert execution (Slack, email, webhooks)
+    ↓
+MAF → Web UI (A2A: action confirmation)
+    ↓
+User: "Analysis complete. Anomalies detected: 3. Alerts sent."
+```
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](docs/development/CONTRIBUTING.md) for guidelines.
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🔗 Resources
+
+- [NVIDIA NeMo Agent Toolkit Docs](https://docs.nvidia.com/nemo/agent-toolkit/latest/)
+- [Microsoft Agent Framework Docs](https://learn.microsoft.com/en-us/agent-framework/)
+- [A2A Integration Guide](https://learn.microsoft.com/en-us/agent-framework/integrations/a2a)
+- [Azure Aspire Docs](https://aspire.dev/)
+
+---
+
+## ❓ FAQ
+
+**Q: Can I use a different LLM provider?**  
+A: Yes! The workflow files support multiple providers. See [docs/SETUP-GUIDE.md](docs/SETUP-GUIDE.md#providers).
+
+**Q: How do I add custom analysis tools to NeMo?**  
+A: See [docs/development/CONTRIBUTING.md](docs/development/CONTRIBUTING.md#extending-nemo).
+
+**Q: How do I deploy this to production?**  
+A: See [docs/SETUP-GUIDE.md#production](docs/SETUP-GUIDE.md#production-deployment).
+
+**Q: Is the A2A communication authenticated?**  
+A: Currently no (local development). TLS + mutual auth is on the roadmap.
+
+---
+
+## 🎓 Learning Resources
+
+This repository is designed to teach:
+- ✅ How to build multi-agent systems with modern frameworks
+- ✅ Agent-to-Agent communication patterns
+- ✅ Microservices orchestration with Aspire
+- ✅ Distributed tracing and observability
+- ✅ Production-ready Python + .NET integration
+
+---
+
+## 📞 Support
+
+- **Issues**: https://github.com/yourusername/MAF-A2A-NVIDIA-NemoAgents/issues
+- **Discussions**: https://github.com/yourusername/MAF-A2A-NVIDIA-NemoAgents/discussions
+- **Email**: contact@yoursite.com
+
+---
+
+**Happy coding! 🚀**

@@ -1,0 +1,37 @@
+# NeMo Agent Toolkit - Latest Version
+nvidia-nemo-toolkit>=1.0.0
+
+# NeMo Agent Toolkit A2A Support
+nemo-agentic-rag>=1.0.0
+
+# Core dependencies
+python-dotenv>=1.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+httpx>=0.25.0
+aiohttp>=3.9.0
+asyncio>=3.4.3
+tenacity>=8.2.0
+
+# Data Analysis & Processing
+pandas>=2.1.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+
+# Observability & Tracing
+opentelemetry-api>=1.20.0
+opentelemetry-sdk>=1.20.0
+opentelemetry-exporter-otlp>=0.41b0
+opentelemetry-instrumentation-aiohttp-client>=0.41b0
+opentelemetry-instrumentation-httpx>=0.41b0
+
+# Logging
+python-json-logger>=2.0.7
+
+# Development
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+black>=23.0.0
+pylint>=3.0.0
+mypy>=1.5.0
