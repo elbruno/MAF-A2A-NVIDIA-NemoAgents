@@ -23,24 +23,38 @@ This repository demonstrates a practical workflow:
 
 ---
 
-## ⚡ Quick Start (3 Steps)
+## ⚡ Quick Start
 
-### 1) Install
+### 1) Clone repo
 
 ```bash
 git clone https://github.com/yourusername/MAF-A2A-NVIDIA-NemoAgents.git
 cd MAF-A2A-NVIDIA-NemoAgents
+```
+
+### 2) Create and activate virtual environment
+
+```bash
 python -m venv .venv
 ```
+
+Windows (PowerShell):
 
 ```powershell
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
+Linux/macOS (bash):
+
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
 Prereqs: Python 3.10+, .NET 10 SDK, NVIDIA API key, Azure OpenAI credentials.
 
-### 2) Run
+### 3) Run app
 
 ```bash
 aspire start
@@ -48,7 +62,7 @@ aspire start
 
 Then open the Web UI at `http://localhost:5000`.
 
-### 3) Try sample prompts
+### 4) Try sample prompts
 
 - `Analyze quarterly revenue trends` (**NeMo**)
 - `Trigger alert for high CPU usage` (**MAF**)
