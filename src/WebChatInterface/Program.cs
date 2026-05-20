@@ -601,7 +601,7 @@ class ChatService : IChatService
         _nemoTimeout = TimeSpan.FromSeconds(Math.Clamp(timeoutSeconds, 10, 300));
         var warmupWaitSeconds = int.TryParse(configuration["NEMO_WARMUP_REQUEST_MAX_WAIT_SECONDS"], out var parsedWarmupWaitSeconds)
             ? parsedWarmupWaitSeconds
-            : 5;
+            : 0;
         _warmupRequestMaxWait = TimeSpan.FromSeconds(Math.Clamp(warmupWaitSeconds, 0, 30));
     }
 
@@ -947,7 +947,7 @@ class AgentWarmupService : BackgroundService
         _retryDelay = TimeSpan.FromSeconds(ClampSeconds(configuration["NEMO_WARMUP_RETRY_DELAY_SECONDS"], 5, 1, 60));
         _maxAttempts = ClampSeconds(configuration["NEMO_WARMUP_MAX_ATTEMPTS"], 3, 1, 10);
         _warmupMessage = configuration["NEMO_WARMUP_MESSAGE"]?.Trim()
-            ?? "Use analyze_time_series, calculate_metrics, detect_anomalies, and generate_insights on quarterly revenue values [100, 110, 120, 130] for Q1-Q4 2024. After all tool calls complete, reply with READY only.";
+            ?? "Analyze quarterly revenue values [100, 110, 120, 130] for Q1-Q4 2024 and reply with READY only.";
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

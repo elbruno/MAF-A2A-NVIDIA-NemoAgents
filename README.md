@@ -83,7 +83,7 @@ Chat responses now render agent markdown as formatted HTML in the conversation b
 
 The chat UI now shows an animated in-chat spinner with elapsed time while a request is in progress, plus a first-request warm-up hint so users know the system is still working during initial NeMo latency.
 
-If you want lower first-response latency, switch NeMo to the new **fast profile** by setting `NEMO_WORKFLOW_PROFILE=fast`. This profile uses a lighter prompt strategy, fewer tools (`analyze_time_series`, `calculate_metrics`), and a configurable smaller model via `NEMO_FAST_MODEL_NAME` (default: `meta/llama-3.2-3b-instruct`).
+NeMo now defaults to the new **fast profile** under Aspire/manual startup (`NEMO_WORKFLOW_PROFILE=fast`). This profile uses a lighter prompt strategy, fewer tools (`analyze_time_series`, `calculate_metrics`), and a configurable smaller model via `NEMO_FAST_MODEL_NAME` (default: `meta/llama-3.2-1b-instruct`). Set `NEMO_WORKFLOW_PROFILE=standard` when you want the full four-tool workflow.
 
 If startup fails because local ports are already occupied:
 

@@ -6,7 +6,7 @@ param(
     [string]$Provider = "nim",
 
     [ValidateSet("standard", "fast")]
-    [string]$NemoWorkflowProfile = "standard",
+    [string]$NemoWorkflowProfile = "fast",
     
     [string]$NemoHost = "127.0.0.1",
     [int]$NemoPort = 8088,

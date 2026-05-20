@@ -10,7 +10,7 @@ llms:
     model_name: ${NEMO_FAST_MODEL_NAME:-meta/llama-3.2-3b-instruct}
     api_key: ${NVIDIA_API_KEY}
     temperature: 0.1
-    max_tokens: 192
+    max_tokens: 96
 
 general:
   front_end:
@@ -34,4 +34,4 @@ workflow:
     Tool names: {tool_names}
     Use available tools only when needed, keep tool usage minimal, and respond briefly.
     Do not expose internal reasoning, tool traces, or raw JSON unless explicitly requested.
-    Return a short final answer with conclusion, key metrics, trend direction, and one recommendation.
+    Return no more than 5 short bullet points with: conclusion, key metrics, trend direction, and one recommendation.

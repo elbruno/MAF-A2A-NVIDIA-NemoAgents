@@ -18,7 +18,7 @@ Open three separate terminal windows in the project root directory.
 
 ```powershell
 Set-Location .\src\NemoDataAnalysisAgent
-$env:NEMO_WORKFLOW_PROFILE = "standard" # Use "fast" for lower-latency profile
+$env:NEMO_WORKFLOW_PROFILE = "fast" # Use "standard" for full workflow profile
 $workflowFile = if ($env:NEMO_WORKFLOW_PROFILE -eq "fast") { ".\nemo\workflow-fast.yml" } else { ".\nemo\workflow.yml" }
 ..\..\.venv\Scripts\nat.exe a2a serve --config_file $workflowFile --host 127.0.0.1 --port 8088
 ```
