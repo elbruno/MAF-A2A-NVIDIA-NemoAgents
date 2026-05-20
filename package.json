@@ -1,0 +1,10 @@
+{
+  "name": "maf-a2a-nvidia-nemoagents-playwright",
+  "private": true,
+  "scripts": {
+    "playwright:test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.2"
+  }
+}
