@@ -2,7 +2,7 @@
 
 > A production-ready sample demonstrating **NVIDIA NeMo Agent Toolkit** + **Microsoft Agent Framework (MAF)** with **Agent-to-Agent (A2A)** communication, orchestrated with **Aspire**.
 
-![MAF A2A NeMo demo in Aspire](images/MAF-A2A-Nemo-Demo02.gif)
+![MAF A2A NeMo demo in Aspire](https://github.com/elbruno/MAF-A2A-NVIDIA-NemoAgents/blob/main/images/MAF-A2A-Nemo-Demo02.gif?raw=1)
 
 ## 🎯 The Scenario: Data Analysis Meets Action Execution
 
