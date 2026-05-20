@@ -9,7 +9,7 @@ Shipped updates to our multi-agent sample:
 - Aspire for orchestration and observability
 
 Try the Quick Start and run end-to-end in minutes:
-https://github.com/elbruno/MAF-A2A-NVIDIA-NemoAgents-private
+https://github.com/elbruno/MAF-A2A-NVIDIA-NemoAgents
 
 #OpenSource #AI #MultiAgent #DotNet #Python
 
@@ -26,4 +26,4 @@ What this sample demonstrates:
 Use it as a baseline for incident response, analytics automation, or compliance-style workflows.
 
 Repository:
-https://github.com/elbruno/MAF-A2A-NVIDIA-NemoAgents-private
+https://github.com/elbruno/MAF-A2A-NVIDIA-NemoAgents

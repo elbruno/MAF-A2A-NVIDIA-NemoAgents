@@ -1,22 +1,30 @@
-# Blog Hero Copy (ElBruno style)
+# Blog Hero Copy (elbruno.com style)
 
-## Hero Title (recommended)
+## Hero title (recommended)
 
-**NeMo + MAF + A2A: From Analysis to Action in One Workflow**
+**Hi! NeMo + MAF + A2A v1: One Demo, Two Agents, Real Workflow**
 
-## Hero Subtitle (recommended)
+## Hero subtitle (recommended)
 
-**Hi! I built this demo to show how a NeMo analysis agent and a MAF action agent can collaborate through A2A v1, with Aspire tracing the full path end-to-end.**
+**A practical Aspire-powered sample where NeMo analyzes, MAF executes, and you can watch the full flow in logs and traces.**
 
-## TL;DR block (for top of post)
+## TL;DR (recommended top block)
 
 **TL;DR**  
-This repo is a practical multi-agent demo:
-- NeMo analyzes data and detects trends/anomalies
-- MAF executes actions (alerts/reports)
-- Web UI orchestrates the 2-step flow
-- Aspire provides health, logs, and OTEL traces
+I wanted a real demo (not a slide) that proves cross-platform agent collaboration:
 
-## Social/Preview Description
+- **NeMo agent** handles analysis (trends, metrics, anomalies)
+- **MAF agent** handles actions (alerts/reports)
+- **Web UI** routes prompts and supports a clear 2-step chain
+- **Aspire** shows health, logs, and OTEL traces end-to-end
 
-Hands-on sample showing cross-platform agent collaboration with NVIDIA NeMo + Microsoft Agent Framework over A2A v1, including a chat UX and Aspire observability.
+If you are building multi-agent apps and need a practical baseline, this repo is exactly that.
+
+## Opening paragraph (ready to paste)
+
+Hi! This started as a simple question: _can I show a real NeMo + MAF multi-agent workflow without hand-wavy architecture diagrams?_  
+The answer is yes. In this demo, NeMo does the analysis, MAF does the action, and Aspire gives you full visibility while everything is running.
+
+## Social / preview description
+
+Hands-on multi-agent demo with NVIDIA NeMo + Microsoft Agent Framework over A2A v1, including Web UI orchestration and Aspire observability.

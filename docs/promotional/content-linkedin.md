@@ -12,7 +12,7 @@ In this open-source sample, we combine:
 
 Result: analyze trends and trigger actions in one cohesive workflow.
 
-Repository: https://github.com/elbruno/MAF-A2A-NVIDIA-NemoAgents-private
+Repository: https://github.com/elbruno/MAF-A2A-NVIDIA-NemoAgents
 
 #AI #MultiAgent #NVIDIA #Microsoft #Aspire #OpenSource #SoftwareArchitecture
 
@@ -27,6 +27,6 @@ New repo update: NeMo + MAF + A2A end-to-end workflow.
 
 If you are building real-time automation scenarios, this is a practical baseline.
 
-Repo: https://github.com/elbruno/MAF-A2A-NVIDIA-NemoAgents-private
+Repo: https://github.com/elbruno/MAF-A2A-NVIDIA-NemoAgents
 
 #AgentAI #A2A #DotNet #Python #CloudNative #DevOps
