@@ -81,6 +81,10 @@ The Web UI also sends a one-time NeMo warm-up request during startup so the firs
 
 Chat responses now render agent markdown as formatted HTML in the conversation bubbles, so tables, lists, headings, and code blocks display correctly in the demo UI. The NeMo prompt is also constrained to return concise final answers instead of exposing raw tool-call transcripts by default, and the NeMo workflow is tuned for shorter chat-friendly replies.
 
+The chat UI now shows an animated in-chat spinner with elapsed time while a request is in progress, plus a first-request warm-up hint so users know the system is still working during initial NeMo latency.
+
+If you want lower first-response latency, switch NeMo to the new **fast profile** by setting `NEMO_WORKFLOW_PROFILE=fast`. This profile uses a lighter prompt strategy, fewer tools (`analyze_time_series`, `calculate_metrics`), and a configurable smaller model via `NEMO_FAST_MODEL_NAME` (default: `meta/llama-3.2-3b-instruct`).
+
 If startup fails because local ports are already occupied:
 
 ```powershell

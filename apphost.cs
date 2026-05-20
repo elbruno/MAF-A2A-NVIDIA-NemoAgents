@@ -19,10 +19,11 @@ var nemo = builder.AddExecutable(
         {
             "-NoProfile",
             "-Command",
-            "if (Test-Path '.\\.venv\\Scripts\\nat.exe') { & '.\\.venv\\Scripts\\nat.exe' a2a serve --config_file .\\src\\NemoDataAnalysisAgent\\nemo\\workflow.yml --host $env:NEMO_HOST --port $env:NEMO_PORT --public_base_url $env:NEMO_PUBLIC_BASE_URL --name \"nemo-data-analysis-agent\" } else { nat a2a serve --config_file .\\src\\NemoDataAnalysisAgent\\nemo\\workflow.yml --host $env:NEMO_HOST --port $env:NEMO_PORT --public_base_url $env:NEMO_PUBLIC_BASE_URL --name \"nemo-data-analysis-agent\" }"
+            "$workflowProfile = if ([string]::IsNullOrWhiteSpace($env:NEMO_WORKFLOW_PROFILE)) { 'standard' } else { $env:NEMO_WORKFLOW_PROFILE.ToLowerInvariant() }; $workflowFile = if ($workflowProfile -eq 'fast') { '.\\src\\NemoDataAnalysisAgent\\nemo\\workflow-fast.yml' } else { '.\\src\\NemoDataAnalysisAgent\\nemo\\workflow.yml' }; if (Test-Path '.\\.venv\\Scripts\\nat.exe') { & '.\\.venv\\Scripts\\nat.exe' a2a serve --config_file $workflowFile --host $env:NEMO_HOST --port $env:NEMO_PORT --public_base_url $env:NEMO_PUBLIC_BASE_URL --name \"nemo-data-analysis-agent\" } else { nat a2a serve --config_file $workflowFile --host $env:NEMO_HOST --port $env:NEMO_PORT --public_base_url $env:NEMO_PUBLIC_BASE_URL --name \"nemo-data-analysis-agent\" }"
         })
     .WithHttpEndpoint(name: "http", env: "NEMO_PORT")
     .WithEnvironment("NEMO_HOST", "127.0.0.1")
+    .WithEnvironment("NEMO_WORKFLOW_PROFILE", "standard")
     .WithEnvironment("NVIDIA_API_KEY", nvidiaApiKey)
     .WithEnvironment("AZURE_OPENAI_ENDPOINT", azureOpenAiEndpoint)
     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", azureOpenAiDeploymentName)

@@ -99,7 +99,23 @@ When running with `aspire start`:
 
 ### NeMo Workflow Config
 
-The NeMo agent uses a workflow YAML file located at `src/NemoDataAnalysisAgent/nemo/workflow.yml`.
+The NeMo agent supports two workflow profiles:
+
+- `src/NemoDataAnalysisAgent/nemo/workflow.yml` (standard)
+- `src/NemoDataAnalysisAgent/nemo/workflow-fast.yml` (lower-latency profile)
+
+Select a profile with:
+
+```bash
+NEMO_WORKFLOW_PROFILE=standard  # or fast
+```
+
+The fast profile is tuned for faster responses by reducing tools and prompt complexity. You can also tune its model independently:
+
+```bash
+NEMO_FAST_MODEL_NAME=meta/llama-3.2-3b-instruct
+```
+
 Custom analysis functions are registered by the local package in `src/NemoDataAnalysisAgent/src/nemo_data_analysis_agent`.
 
 Key settings:
@@ -146,6 +162,8 @@ curl http://127.0.0.1:5055/health
 | `AZURE_OPENAI_API_KEY` | Conditional | - | Azure OpenAI API key (if using Azure) |
 | `NEMO_HOST` | No | 127.0.0.1 | NeMo agent hostname |
 | `NEMO_PORT` | No | 8088 | NeMo agent port |
+| `NEMO_WORKFLOW_PROFILE` | No | standard | Select NeMo workflow profile (`standard` or `fast`) |
+| `NEMO_FAST_MODEL_NAME` | No | meta/llama-3.2-3b-instruct | Model used by fast NeMo profile |
 | `MAF_HOST` | No | 127.0.0.1 | MAF agent hostname |
 | `MAF_PORT` | No | 5055 | MAF agent port |
 | `WEB_UI_HOST` | No | 127.0.0.1 | Web UI hostname |

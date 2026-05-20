@@ -4,6 +4,9 @@
 param(
     [ValidateSet("nim", "azure-openai")]
     [string]$Provider = "nim",
+
+    [ValidateSet("standard", "fast")]
+    [string]$NemoWorkflowProfile = "standard",
     
     [string]$NemoHost = "127.0.0.1",
     [int]$NemoPort = 8088,
@@ -54,6 +57,7 @@ try {
     
     Write-Host "Configuration:" -ForegroundColor Yellow
     Write-Host "  Provider: $Provider"
+    Write-Host "  NeMo profile: $NemoWorkflowProfile"
     Write-Host "  NeMo Agent: http://$NemoHost:$NemoPort"
     Write-Host "  MAF Agent: http://$MafHost:$MafPort"
     Write-Host "  Web UI: http://$WebUiHost:$WebUiPort`n"
@@ -65,17 +69,20 @@ Set-Location "src\NemoDataAnalysisAgent"
 `$env:NEMO_HOST = "$NemoHost"
 `$env:NEMO_PORT = $NemoPort
 `$env:NEMO_PROVIDER = "$Provider"
+`$env:NEMO_WORKFLOW_PROFILE = "$NemoWorkflowProfile"
+`$workflowFile = if (`$env:NEMO_WORKFLOW_PROFILE -eq "fast") { ".\nemo\workflow-fast.yml" } else { ".\nemo\workflow.yml" }
 
 Write-Host "NeMo Agent is starting..." -ForegroundColor Cyan
 Write-Host "Endpoint: http://`$env:NEMO_HOST:`$env:NEMO_PORT" -ForegroundColor Green
+Write-Host "Workflow: `$workflowFile" -ForegroundColor Green
 
 # Run NeMo with NAT CLI
 `$venvNat = "..\..\.venv\Scripts\nat.exe"
 if (Test-Path `$venvNat) {
-    & `$venvNat a2a serve --config_file .\nemo\workflow.yml --host `$env:NEMO_HOST --port `$env:NEMO_PORT --name "nemo-data-analysis-agent"
+    & `$venvNat a2a serve --config_file `$workflowFile --host `$env:NEMO_HOST --port `$env:NEMO_PORT --name "nemo-data-analysis-agent"
 }
 else {
-    nat a2a serve --config_file .\nemo\workflow.yml --host `$env:NEMO_HOST --port `$env:NEMO_PORT --name "nemo-data-analysis-agent"
+    nat a2a serve --config_file `$workflowFile --host `$env:NEMO_HOST --port `$env:NEMO_PORT --name "nemo-data-analysis-agent"
 }
 "@
     

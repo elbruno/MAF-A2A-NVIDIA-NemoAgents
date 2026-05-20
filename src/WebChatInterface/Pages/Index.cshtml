@@ -111,7 +111,7 @@
             messageInput.value = '';
             sendBtn.disabled = true;
             messageInput.disabled = true;
-            const pendingMessage = addMessageToChat('system', 'System', 'Working on your request...', new Date());
+            const pendingIndicator = createPendingIndicator();
 
             try {
                 // Send to backend
@@ -124,20 +124,45 @@
                 if (response.ok) {
                     const data = await response.json();
                     const responder = data.respondedBy || 'Agent';
-                    pendingMessage.remove();
+                    pendingIndicator.dispose();
                     addMessageToChat('agent', responder, data.content || 'No response', data.responseTime, data.contentHtml);
                 } else {
-                    pendingMessage.remove();
+                    pendingIndicator.dispose();
                     addMessageToChat('system', 'System', 'Error: ' + response.statusText, new Date());
                 }
             } catch (error) {
-                pendingMessage.remove();
+                pendingIndicator.dispose();
                 addMessageToChat('system', 'System', 'Error: ' + error.message, new Date());
             } finally {
                 sendBtn.disabled = false;
                 messageInput.disabled = false;
                 messageInput.focus();
             }
+        }
+
+        function createPendingIndicator() {
+            const pendingMessage = addMessageToChat(
+                'system',
+                'System',
+                '',
+                new Date(),
+                `<div class="chat-loading-line"><span class="chat-loading-spinner" aria-hidden="true"></span><span class="chat-loading-text">Analyzing your request with NeMo... 0s</span></div><div class="chat-loading-subtext">First request may take longer while the model and tools warm up.</div>`
+            );
+            const loadingText = pendingMessage.querySelector('.chat-loading-text');
+            let elapsedSeconds = 0;
+            const intervalId = window.setInterval(() => {
+                elapsedSeconds += 1;
+                if (loadingText) {
+                    loadingText.textContent = `Analyzing your request with NeMo... ${elapsedSeconds}s`;
+                }
+            }, 1000);
+
+            return {
+                dispose() {
+                    window.clearInterval(intervalId);
+                    pendingMessage.remove();
+                }
+            };
         }
 
         function addMessageToChat(role, actor, content, timestamp, contentHtml = '') {
@@ -346,6 +371,31 @@
         }
         .chat-content th {
             background-color: #eef2f7;
+        }
+        .chat-loading-line {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+        }
+        .chat-loading-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid #d7dce0;
+            border-top-color: #2f61c6;
+            border-radius: 50%;
+            display: inline-block;
+            animation: chat-spin 0.9s linear infinite;
+        }
+        .chat-loading-subtext {
+            color: #6c757d;
+            font-size: 0.8rem;
+            margin-top: 6px;
+        }
+        @@keyframes chat-spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
     </style>
 }
