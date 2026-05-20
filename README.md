@@ -23,7 +23,7 @@ This repository demonstrates a practical workflow:
 
 ---
 
-![MAF A2A NeMo demo in Aspire](https://github.com/elbruno/MAF-A2A-NVIDIA-NemoAgents/blob/main/images/MAF-A2A-Nemo-Demo02.gif?raw=1)
+<img src="./images/MAF-A2A-Nemo-Demo02.gif" alt="MAF A2A NeMo demo in Aspire" />
 
 ## ⚡ Quick Start
 
