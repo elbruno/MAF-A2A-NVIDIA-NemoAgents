@@ -157,6 +157,11 @@ Routing behavior in `src/WebChatInterface/Program.cs`:
 
 ## Communication Protocol: Agent-to-Agent (A2A)
 
+This demo aligns with the A2A v1 direction described by the Microsoft Agent Framework team:
+
+- [A2A v1 is here: cross-platform agent communication in Microsoft Agent Framework for .NET](https://devblogs.microsoft.com/agent-framework/a2a-v1-is-here-cross-platform-agent-communication-in-microsoft-agent-framework-for-net/)
+- [A2A integration docs for Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/integrations/a2a)
+
 ### Discovery
 Each agent exposes a standard agent card:
 ```bash
@@ -253,6 +258,8 @@ kubectl apply -f manifests/
 - **OTEL Instrumentation**: All HTTP clients and servers
 - **Correlation IDs**: Propagated across A2A calls
 - **Span Context**: Parent-child relationships tracked
+- **GenAI spans (MAF)**: Action execution emits `maf.gen_ai.*` spans with `gen_ai.*` attributes for dashboard filtering
+- **NeMo tracing note**: NeMo trace richness depends on NAT workflow execution (tool-invoking flows provide richer spans than direct-answer flows)
 
 ### Metrics
 - Request latency (p50, p95, p99)

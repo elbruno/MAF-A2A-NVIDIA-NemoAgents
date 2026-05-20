@@ -11,6 +11,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,7 +49,7 @@ if (otelEnabled)
     
     var resource = ResourceBuilder.CreateDefault()
         .AddService(serviceName: "maf-action-agent", serviceVersion: "1.0.0");
-    var otlpEndpointConfigured = !string.IsNullOrWhiteSpace(configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
+    var otlpEndpoint = MafGenAiTelemetry.ResolveOtlpEndpoint(configuration);
 
     builder.Services
         .AddOpenTelemetry()
@@ -56,12 +57,16 @@ if (otelEnabled)
         {
             tracing
                 .SetResourceBuilder(resource)
+                .AddSource(MafGenAiTelemetry.Source.Name)
                 .AddAspNetCoreInstrumentation(opt => opt.RecordException = true)
                 .AddHttpClientInstrumentation(opt => opt.RecordException = true);
 
-            if (otlpEndpointConfigured)
+            if (!string.IsNullOrWhiteSpace(otlpEndpoint))
             {
-                tracing.AddOtlpExporter();
+                tracing.AddOtlpExporter(options =>
+                {
+                    options.Endpoint = new Uri(otlpEndpoint);
+                });
             }
         }
         );
@@ -73,9 +78,12 @@ if (otelEnabled)
         logging.ParseStateValues = true;
         logging.SetResourceBuilder(resource);
 
-        if (otlpEndpointConfigured)
+        if (!string.IsNullOrWhiteSpace(otlpEndpoint))
         {
-            logging.AddOtlpExporter();
+            logging.AddOtlpExporter(options =>
+            {
+                options.Endpoint = new Uri(otlpEndpoint);
+            });
         }
     });
 }
@@ -231,14 +239,22 @@ interface IA2ABridge
 class ActionExecutor : IActionExecutor
 {
     private readonly ILogger<ActionExecutor> _logger;
+    private readonly string _modelName;
 
-    public ActionExecutor(ILogger<ActionExecutor> logger)
+    public ActionExecutor(ILogger<ActionExecutor> logger, IConfiguration configuration)
     {
         _logger = logger;
+        _modelName = configuration["AZURE_OPENAI_DEPLOYMENT_NAME"] ?? "maf-action-planner";
     }
 
     public async Task<ActionResult> ExecuteActionAsync(ActionRequest request)
     {
+        using var activity = MafGenAiTelemetry.Source.StartActivity("maf.gen_ai.plan_action", ActivityKind.Internal);
+        activity?.SetTag("gen_ai.system", "microsoft.agent.framework");
+        activity?.SetTag("gen_ai.operation.name", "plan_action");
+        activity?.SetTag("gen_ai.request.model", _modelName);
+        activity?.SetTag("gen_ai.request.type", request.ActionType);
+
         _logger.LogInformation($"Executing action: {request.ActionType} with params: {request.Parameters}");
         
         var result = new ActionResult
@@ -249,12 +265,19 @@ class ActionExecutor : IActionExecutor
             Details = $"Action {request.ActionType} executed successfully"
         };
 
+        activity?.SetTag("gen_ai.response.status", "success");
         await Task.CompletedTask;
         return result;
     }
 
     public async Task<ActionResult> TriggerAlertAsync(AlertRequest request)
     {
+        using var activity = MafGenAiTelemetry.Source.StartActivity("maf.gen_ai.trigger_alert", ActivityKind.Internal);
+        activity?.SetTag("gen_ai.system", "microsoft.agent.framework");
+        activity?.SetTag("gen_ai.operation.name", "trigger_alert");
+        activity?.SetTag("gen_ai.request.model", _modelName);
+        activity?.SetTag("gen_ai.request.alert.level", request.AlertLevel);
+
         _logger.LogWarning($"Alert triggered: [{request.AlertLevel}] {request.Message}");
         
         var result = new ActionResult
@@ -265,12 +288,19 @@ class ActionExecutor : IActionExecutor
             Details = $"Alert sent at severity: {request.AlertLevel}"
         };
 
+        activity?.SetTag("gen_ai.response.status", "success");
         await Task.CompletedTask;
         return result;
     }
 
     public async Task<ActionResult> GenerateReportAsync(ReportRequest request)
     {
+        using var activity = MafGenAiTelemetry.Source.StartActivity("maf.gen_ai.generate_report", ActivityKind.Internal);
+        activity?.SetTag("gen_ai.system", "microsoft.agent.framework");
+        activity?.SetTag("gen_ai.operation.name", "generate_report");
+        activity?.SetTag("gen_ai.request.model", _modelName);
+        activity?.SetTag("gen_ai.request.report.type", request.ReportType);
+
         _logger.LogInformation($"Generating report: {request.ReportType}");
         
         var result = new ActionResult
@@ -281,6 +311,7 @@ class ActionExecutor : IActionExecutor
             Details = $"Report {request.ReportType} generated and queued for delivery"
         };
 
+        activity?.SetTag("gen_ai.response.status", "success");
         await Task.CompletedTask;
         return result;
     }
@@ -297,6 +328,10 @@ class A2ABridge : IA2ABridge
 
     public async Task<string> ProcessA2ARequestAsync(string jsonRpcRequest)
     {
+        using var activity = MafGenAiTelemetry.Source.StartActivity("maf.gen_ai.process_a2a", ActivityKind.Server);
+        activity?.SetTag("gen_ai.system", "microsoft.agent.framework");
+        activity?.SetTag("gen_ai.operation.name", "a2a_request");
+
         _logger.LogDebug($"Processing A2A request: {jsonRpcRequest}");
         
         // Parse JSON-RPC request and route to appropriate action
@@ -307,8 +342,31 @@ class A2ABridge : IA2ABridge
             { "timestamp", DateTime.UtcNow.ToString("O") }
         };
 
+        activity?.SetTag("gen_ai.response.status", "processed");
         await Task.CompletedTask;
         return System.Text.Json.JsonSerializer.Serialize(response);
+    }
+}
+
+static class MafGenAiTelemetry
+{
+    internal static readonly ActivitySource Source = new("MafActionAgent.GenAI");
+    
+    internal static string? ResolveOtlpEndpoint(IConfiguration configuration)
+    {
+        var aspireEndpoint = configuration["ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT"];
+        if (!string.IsNullOrWhiteSpace(aspireEndpoint))
+        {
+            return aspireEndpoint;
+        }
+
+        var standardEndpoint = configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
+        if (!string.IsNullOrWhiteSpace(standardEndpoint))
+        {
+            return standardEndpoint;
+        }
+
+        return null;
     }
 }
 

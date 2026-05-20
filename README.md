@@ -139,7 +139,7 @@ graph TB
 ✅ **Report Generation** - Async report creation  
 ✅ **A2A Integration** - Agent discovery + JSON-RPC communication  
 ✅ **Health Checks** - Liveness, readiness, startup probes  
-✅ **OpenTelemetry** - Full distributed tracing support  
+✅ **OpenTelemetry** - Distributed tracing with GenAI-labeled MAF spans (`maf.gen_ai.*`)  
 
 ### Web Chat Interface
 
@@ -235,6 +235,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 - [NVIDIA NeMo Agent Toolkit Docs](https://docs.nvidia.com/nemo/agent-toolkit/latest/)
 - [Microsoft Agent Framework Docs](https://learn.microsoft.com/en-us/agent-framework/)
+- [A2A v1 in Microsoft Agent Framework (.NET)](https://devblogs.microsoft.com/agent-framework/a2a-v1-is-here-cross-platform-agent-communication-in-microsoft-agent-framework-for-net/)
 - [A2A Integration Guide](https://learn.microsoft.com/en-us/agent-framework/integrations/a2a)
 - [Azure Aspire Docs](https://aspire.dev/)
 

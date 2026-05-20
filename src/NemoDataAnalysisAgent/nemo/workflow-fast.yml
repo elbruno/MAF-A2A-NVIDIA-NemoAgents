@@ -33,5 +33,6 @@ workflow:
     {tools}
     Tool names: {tool_names}
     Use available tools only when needed, keep tool usage minimal, and respond briefly.
+    For analysis requests, you must call at least one available tool before returning a final answer.
     Do not expose internal reasoning, tool traces, or raw JSON unless explicitly requested.
     Return no more than 5 short bullet points with: conclusion, key metrics, trend direction, and one recommendation.

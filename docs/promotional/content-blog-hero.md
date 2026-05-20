@@ -1,17 +1,22 @@
-# Blog Hero Copy
+# Blog Hero Copy (ElBruno style)
 
-## Title Options
+## Hero Title (recommended)
 
-1. **From Insight to Action: Building a Multi-Agent Workflow with NeMo + MAF**
-2. **NeMo + MAF in Practice: A2A Orchestration for Real-Time Decisions**
-3. **Designing Production-Ready Multi-Agent Systems with Aspire**
+**NeMo + MAF + A2A: From Analysis to Action in One Workflow**
 
-## Subtitle Options
+## Hero Subtitle (recommended)
 
-1. **A practical architecture where one agent analyzes and another agent executes, with full observability.**
-2. **How to combine NVIDIA NeMo and Microsoft Agent Framework using A2A communication.**
-3. **An end-to-end sample for analysis, routing, and action automation.**
+**Hi! I built this demo to show how a NeMo analysis agent and a MAF action agent can collaborate through A2A v1, with Aspire tracing the full path end-to-end.**
+
+## TL;DR block (for top of post)
+
+**TL;DR**  
+This repo is a practical multi-agent demo:
+- NeMo analyzes data and detects trends/anomalies
+- MAF executes actions (alerts/reports)
+- Web UI orchestrates the 2-step flow
+- Aspire provides health, logs, and OTEL traces
 
 ## Social/Preview Description
 
-Production-ready sample repository showing how to orchestrate a NeMo analysis agent and a MAF action agent through A2A, with a Web UI and Aspire-based observability.
+Hands-on sample showing cross-platform agent collaboration with NVIDIA NeMo + Microsoft Agent Framework over A2A v1, including a chat UX and Aspire observability.

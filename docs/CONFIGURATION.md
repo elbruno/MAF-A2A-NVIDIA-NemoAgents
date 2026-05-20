@@ -80,6 +80,12 @@ NEMO_LOG_LEVEL=Information
 WEB_UI_LOG_LEVEL=Information
 ```
 
+### GenAI tracing notes
+
+- **MAF agent** now emits GenAI-tagged spans such as `maf.gen_ai.plan_action` to the Aspire OTEL collector.
+- **NeMo agent** depends on NeMo Agent Toolkit telemetry behavior and tool execution path; in fast profile it may answer directly without tool spans for some prompts.
+- In Aspire runs, OTLP endpoint/headers are injected dynamically; for manual runs you must provide `OTEL_EXPORTER_OTLP_ENDPOINT` (and headers when required by your collector).
+
 ## Aspire Configuration
 
 When running with `aspire start`:

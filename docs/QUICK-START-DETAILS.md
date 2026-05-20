@@ -78,3 +78,4 @@ If startup fails due to occupied ports:
 - [Manual Startup](./MANUAL-STARTUP.md)
 - [Testing](./TESTING.md)
 - [Architecture](./README-ARCHITECTURE.md)
+- [A2A v1 blog post from the MAF team](https://devblogs.microsoft.com/agent-framework/a2a-v1-is-here-cross-platform-agent-communication-in-microsoft-agent-framework-for-net/)

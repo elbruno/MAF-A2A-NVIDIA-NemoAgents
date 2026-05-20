@@ -108,6 +108,22 @@ curl -X POST http://localhost:5000/api/chat \
   -d '{"message":"Trigger alert for high CPU usage"}'
 ```
 
+### Verify OTEL GenAI traces in Aspire
+
+After running at least one MAF action prompt:
+
+```bash
+aspire otel traces -n 20 --format Json
+```
+
+Expected in span list:
+
+- `source` containing `maf-action-agent`
+- `name` equal to `maf.gen_ai.plan_action`
+- GenAI attributes such as `gen_ai.system` and `gen_ai.operation.name`
+
+For NeMo, trace availability depends on workflow/tool execution path in NAT; prompts that bypass tool usage may not produce NeMo-specific GenAI spans.
+
 ### Playwright Latency Test (Web UI flow)
 
 This repository includes a browser-based latency test for the exact chat flow:
