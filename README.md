@@ -36,6 +36,8 @@ cd MAF-A2A-NVIDIA-NemoAgents
 
 ### 2) Create and activate virtual environment
 
+**⚠️ Important**: The virtual environment must be created before running Aspire. Aspire uses the venv's Python executable to run the NeMo agent.
+
 ```bash
 python -m venv .venv
 ```

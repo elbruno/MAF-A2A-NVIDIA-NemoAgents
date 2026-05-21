@@ -64,6 +64,54 @@ Context storage is TTL-bounded and size-limited via:
 - `CHAT_ANALYSIS_CONTEXT_TTL_MINUTES`
 - `CHAT_ANALYSIS_CONTEXT_MAX_LENGTH`
 
+## Troubleshooting
+
+### Python virtual environment not found
+
+If you see `ImportError: cannot import name 'data_path' from 'nat.utils'` when starting the NeMo agent:
+
+1. Ensure the Python virtual environment exists:
+   ```powershell
+   python -m venv .venv
+   ```
+
+2. Activate it and install dependencies:
+   ```powershell
+   .\.venv\Scripts\Activate.ps1
+   pip install -r requirements.txt
+   ```
+
+3. Restart Aspire:
+   ```powershell
+   aspire stop
+   aspire start
+   ```
+
+The Aspire AppHost uses the venv's NAT (NVIDIA Agent Toolkit) executable when available, falling back to system Python only if not found.
+
+### Build artifacts file lock errors
+
+If the Web UI fails with "Cannot open 'Shared.dll' for writing":
+
+1. Stop Aspire:
+   ```powershell
+   aspire stop
+   ```
+
+2. Clean build artifacts:
+   ```powershell
+   Remove-Item -Path "src/Shared/obj" -Recurse -Force
+   Remove-Item -Path "src/WebChatInterface/obj" -Recurse -Force
+   Remove-Item -Path "src/MafActionAgent/obj" -Recurse -Force
+   ```
+
+3. Restart Aspire:
+   ```powershell
+   aspire start
+   ```
+
+This issue typically occurs when Aspire is restarted while build processes are still holding file locks.
+
 ## Port conflicts
 
 If startup fails due to occupied ports:
