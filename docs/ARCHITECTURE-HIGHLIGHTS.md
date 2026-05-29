@@ -438,6 +438,6 @@ Long-running analyses return job ID:
 ## Next Steps
 
 - See [Manual Startup](./MANUAL-STARTUP.md) for local development
-- See [Deployment](./DEPLOYMENT.md) for production deployment
+- See [Deployment](./DEPLOYMENT.md) for Azure Container Apps and Docker Compose deployment
 - See [Configuration](./CONFIGURATION.md) for customization options
 - See [Testing](./TESTING.md) for validation procedures

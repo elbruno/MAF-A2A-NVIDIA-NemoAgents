@@ -222,9 +222,9 @@ aspire start → Aspire Dashboard (http://localhost:18888)
   └── Web UI (.NET web app)
 ```
 
-### Pattern 2: Container Deployment (Docker)
+### Pattern 2: Container Deployment (Docker Compose)
 ```
-docker-compose up
+docker compose up --build
   ├── nemo-agent (Python container)
   ├── maf-agent (.NET container)
   ├── web-ui (.NET container)

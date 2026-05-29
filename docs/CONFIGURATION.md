@@ -168,6 +168,7 @@ curl http://127.0.0.1:5055/health
 | `AZURE_OPENAI_API_KEY` | Conditional | - | Azure OpenAI API key (if using Azure) |
 | `NEMO_HOST` | No | 127.0.0.1 | NeMo agent hostname |
 | `NEMO_PORT` | No | 8088 | NeMo agent port |
+| `NEMO_PUBLIC_BASE_URL` | No | http://127.0.0.1:8088 | Public NeMo base URL used by A2A discovery |
 | `NEMO_WORKFLOW_PROFILE` | No | fast | Select NeMo workflow profile (`fast` or `standard`) |
 | `NEMO_FAST_MODEL_NAME` | No | meta/llama-3.2-1b-instruct | Model used by fast NeMo profile |
 | `MAF_HOST` | No | 127.0.0.1 | MAF agent hostname |
@@ -218,5 +219,5 @@ Notes:
 ## Next Steps
 
 - See [Manual Startup](./MANUAL-STARTUP.md) to run components manually
-- See [Deployment](./DEPLOYMENT.md) for production setup
+- See [Deployment](./DEPLOYMENT.md) for Azure Container Apps and Docker Compose setup
 - See [Testing](./TESTING.md) to validate configuration

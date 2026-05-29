@@ -1,0 +1,70 @@
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.111.0
+    command: ["--config=/etc/otelcol-contrib/config.yaml"]
+    volumes:
+      - ./docker/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+
+  nemo-agent:
+    build:
+      context: .
+      dockerfile: src/NemoDataAnalysisAgent/Dockerfile
+    image: maf-a2a-nemo-agent:latest
+    env_file:
+      - .env
+    environment:
+      NEMO_HOST: 0.0.0.0
+      NEMO_PORT: 8088
+      NEMO_PUBLIC_BASE_URL: http://nemo-agent:8088
+      NEMO_WORKFLOW_PROFILE: fast
+      NEMO_WARMUP_ENABLED: "false"
+      ENABLE_OTEL_TRACING: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "8088:8088"
+    depends_on:
+      - otel-collector
+
+  maf-agent:
+    build:
+      context: .
+      dockerfile: src/MafActionAgent/Dockerfile
+    image: maf-a2a-maf-agent:latest
+    env_file:
+      - .env
+    environment:
+      MAF_HOST: 0.0.0.0
+      MAF_PORT: 5055
+      NEMO_A2A_ENDPOINT: http://nemo-agent:8088
+      ENABLE_OTEL_TRACING: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "5055:5055"
+    depends_on:
+      - nemo-agent
+      - otel-collector
+
+  web-ui:
+    build:
+      context: .
+      dockerfile: src/WebChatInterface/Dockerfile
+    image: maf-a2a-web-ui:latest
+    env_file:
+      - .env
+    environment:
+      WEB_UI_HOST: 0.0.0.0
+      WEB_UI_PORT: 5000
+      NEMO_A2A_ENDPOINT: http://nemo-agent:8088
+      MAF_AGENT_ENDPOINT: http://maf-agent:5055
+      NEMO_WARMUP_ENABLED: "false"
+      ENABLE_OTEL_TRACING: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "5000:5000"
+    depends_on:
+      - nemo-agent
+      - maf-agent
+      - otel-collector

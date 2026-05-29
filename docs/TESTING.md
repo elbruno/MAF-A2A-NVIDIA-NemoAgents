@@ -268,4 +268,4 @@ dotnet test --logger "trx" --collection-level=class
 
 - See [Configuration](./CONFIGURATION.md) to validate settings
 - See [Manual Startup](./MANUAL-STARTUP.md) to set up test environment
-- See [Deployment](./DEPLOYMENT.md) for production validation
+- See [Deployment](./DEPLOYMENT.md) for deployment validation

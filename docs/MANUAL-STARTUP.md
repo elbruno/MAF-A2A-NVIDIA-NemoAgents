@@ -105,4 +105,4 @@ Press `Ctrl+C` in each terminal window to gracefully shutdown each component.
 
 - See [Architecture](../README.md#-system-architecture) to understand system design
 - See [Configuration](./CONFIGURATION.md) to customize settings
-- Check [Deployment](./DEPLOYMENT.md) for production-ready startup with Aspire
+- Check [Deployment](./DEPLOYMENT.md) for Azure Container Apps and Docker Compose deployment

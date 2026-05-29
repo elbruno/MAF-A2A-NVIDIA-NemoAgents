@@ -1,0 +1,13 @@
+.git
+.github
+.copilot
+.venv
+.vscode
+docs
+images
+tests
+**/bin
+**/obj
+**/__pycache__
+**/*.pyc
+.env

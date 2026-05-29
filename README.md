@@ -169,7 +169,7 @@ graph TB
 - **[Architecture Guide](docs/README-ARCHITECTURE.md)** - Deep dive into system design
 - **[Configuration Guide](docs/CONFIGURATION.md)** - Environment variables, provider credentials, and service wiring details.
 - **[Testing Guide](docs/TESTING.md)** - Commands and workflows for unit, integration, and manual validation.
-- **[Deployment Guide](docs/DEPLOYMENT.md)** - Local Aspire startup plus container and cloud deployment flows.
+- **[Deployment Guide](docs/DEPLOYMENT.md)** - Azure Container Apps and Docker Compose deployment flows.
 - **[Contributing](docs/development/CONTRIBUTING.md)** - Development guidelines
 - **[ADRs](docs/development/architecture-decisions.md)** - Architecture decision records
 
@@ -196,8 +196,8 @@ graph TB
 ### Orchestration
 
 - **Aspire** `13.0.0+`
-- **Docker** (coming soon)
-- **Kubernetes** (coming soon)
+- **Docker Compose**
+- **Azure Container Apps**
 
 ---
 
