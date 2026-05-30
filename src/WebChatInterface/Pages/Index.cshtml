@@ -118,15 +118,21 @@
                 <div class="input-group">
                     <select class="form-select" id="predefinedQuestionSelect">
                         <option value="">Select a test question...</option>
-                        <option
-                            value="Generate an image of a modern site-reliability operations dashboard for a payments service incident: a rising error-rate line chart crossing a 5% threshold, an alert badge, and a calm on-call engineer reviewing a runbook. Flat vector style, blue and teal palette, high contrast, professional.">
-                            🖼️ Generate an incident-response image (MAF image agent · GPT-Image-2)</option>
-                        <option
-                            value="Trigger an alert for the payments service error-rate spike and recommend the runbook remediation">
-                            🧯 Grounded action: payments error-rate spike → runbook (MAF + RAG)</option>
+                        <optgroup label="🔗 Connected incident scenario — Payments error-rate spike">
                             <option
-                                value="Generate an incident report for the payments error-rate spike using the runbook and policy">
-                                📝 Grounded report: payments incident from runbook (MAF + RAG)</option>
+                                value="Generate an image that visualizes the payments service incident: an error-rate line chart climbing from a 0.4% baseline to a 7.2% peak and crossing the 5% alert threshold right after the 14:32 deployment, with a red High-severity alert badge and a calm on-call engineer opening runbook RB-014. Flat vector style, blue and teal palette with a red alert accent, high contrast, professional dashboard look.">
+                                1️⃣ Visualize the incident data (MAF image agent · GPT-Image-2)</option>
+                            <option
+                                value="Analyze this payments.error_rate time series and tell me the trend, the peak value, and whether it breaches the 5% threshold: 0.4%, 0.5%, 0.4%, 2.1%, 4.3%, 6.0%, 6.8%, 7.2% sampled each minute starting at 14:30, right after the 14:32 deployment to the payments cluster.">
+                                2️⃣ Analyze the incident data (NeMo data-analysis agent)</option>
+                            <option
+                                value="The payments.error_rate spiked to 7.2% and stayed above 5% after the 14:32 deployment. Trigger the appropriate alert and recommend the runbook remediation, citing the runbook and alert-severity policy.">
+                                3️⃣ Act on the incident: alert + runbook remediation (MAF + RAG)</option>
+                            <option
+                                value="Generate an incident report for the payments error-rate spike (0.4% baseline rising to a 7.2% peak after the 14:32 deployment) using the runbook and alert-severity policy.">
+                                📝 Bonus: grounded incident report (MAF + RAG)</option>
+                        </optgroup>
+                        <optgroup label="Other quick tests">
                                 <option value="Analyze quarterly revenue trends">📊 Analyze quarterly revenue trends (NeMo)
                                 </option>
                                 <option value="Detect anomalies in system performance">⚠️ Detect anomalies in system performance
@@ -146,6 +152,7 @@
                                                 value="Analyze quarterly revenue trends and then trigger alert for high CPU usage based on the analysis findings">
                                                 🔗 Analyze quarterly revenue trends and then trigger alert for high CPU usage based on the
                                                 analysis findings (NeMo + MAF)</option>
+                        </optgroup>
                                             </select>
                                             <button type="button" class="btn btn-outline-secondary" id="usePredefinedQuestionBtn">Use</button>
                                         </div>
