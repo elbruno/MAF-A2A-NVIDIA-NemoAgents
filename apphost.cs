@@ -13,7 +13,7 @@ var azureOpenAiApiKey = builder.AddParameter("azure-openai-api-key", secret: tru
 // Image generation (GPT-Image-2 via Azure OpenAI / ElBruno.Text2Image.Foundry) — used by the
 // optional, additive pitch image agent. Aspire prompts for these secrets at startup. Generation is
 // background/cached and fault-tolerant, so leaving them blank simply disables the cold-open image.
-var enableImageAgent = builder.AddParameter("enable-image-agent", value: "false");
+var enableImageAgent = builder.AddParameter("enable-image-agent");
 var imageEndpoint = builder.AddParameter("gpt-image-endpoint", secret: true);
 var imageApiKey = builder.AddParameter("gpt-image-api-key", secret: true);
 var imageDeployment = builder.AddParameter("gpt-image-deployment", value: "gpt-image-2");
