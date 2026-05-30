@@ -191,6 +191,39 @@ app.MapPost("/api/actions/trigger", async (ActionRequest request, IAgentOrchestr
 .WithName("TriggerAction")
 .WithOpenApi();
 
+// --- Indexed knowledge documents: JSON list + server-rendered viewer pages (Task 4) ---
+app.MapGet("/api/knowledge/docs", async (IAgentOrchestrator orchestrator, CancellationToken ct) =>
+    Results.Ok(await orchestrator.GetIndexedDocsAsync(ct)))
+.Produces<List<KnowledgeDocInfo>>()
+.WithName("ListIndexedDocs")
+.WithOpenApi();
+
+app.MapGet("/knowledge", async (IAgentOrchestrator orchestrator, CancellationToken ct) =>
+{
+    var docs = await orchestrator.GetIndexedDocsAsync(ct);
+    return Results.Content(KnowledgeViews.RenderIndexPage(docs), "text/html; charset=utf-8");
+})
+.ExcludeFromDescription();
+
+app.MapGet("/knowledge/{docId}", async (string docId, IAgentOrchestrator orchestrator, CancellationToken ct) =>
+{
+    var doc = await orchestrator.GetKnowledgeDocAsync(docId, ct);
+    return doc is not null
+        ? Results.Content(KnowledgeViews.RenderDocPage(doc), "text/html; charset=utf-8")
+        : Results.Content(KnowledgeViews.RenderNotFoundPage(docId), "text/html; charset=utf-8", statusCode: 404);
+})
+.ExcludeFromDescription();
+
+// Optional generated pitch hero image (proxied from the MAF agent); 404 when unavailable
+app.MapGet("/api/pitch/hero-image", async (IAgentOrchestrator orchestrator, CancellationToken ct) =>
+{
+    var image = await orchestrator.GetPitchImageAsync(ct);
+    return image is not null
+        ? Results.File(image.Value.Bytes, image.Value.ContentType)
+        : Results.NotFound();
+})
+.ExcludeFromDescription();
+
 app.MapRazorPages();
 app.MapControllers();
 
@@ -203,6 +236,9 @@ interface IAgentOrchestrator
     Task<Dictionary<string, object>> RequestAnalysisAsync(AnalysisRequest request, CancellationToken cancellationToken = default);
     Task<ActionResult> ExecuteActionAsync(ActionRequest request, CancellationToken cancellationToken = default);
     Task<string> SendNemoMessageAsync(string message, string? sessionId, CancellationToken cancellationToken = default);
+    Task<List<KnowledgeDocInfo>> GetIndexedDocsAsync(CancellationToken cancellationToken = default);
+    Task<KnowledgeDocContent?> GetKnowledgeDocAsync(string docId, CancellationToken cancellationToken = default);
+    Task<(byte[] Bytes, string ContentType)?> GetPitchImageAsync(CancellationToken cancellationToken = default);
 }
 
 interface IChatService
@@ -220,6 +256,7 @@ interface IAgentClient
 {
     Task<T> GetAsync<T>(string url, CancellationToken cancellationToken = default);
     Task<T> PostAsync<T>(string url, object payload, CancellationToken cancellationToken = default);
+    Task<(byte[] Bytes, string ContentType)?> GetBytesAsync(string url, CancellationToken cancellationToken = default);
 }
 
 record AnalysisContextEntry(string SourcePrompt, string Summary, DateTime CapturedAtUtc);
@@ -280,6 +317,27 @@ class AgentClient : IAgentClient
         {
             _logger.LogError(ex, "Error in PostAsync");
             throw;
+        }
+    }
+
+    public async Task<(byte[] Bytes, string ContentType)?> GetBytesAsync(string url, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var response = await _httpClient.GetAsync(url, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+            return (bytes, contentType);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error in GetBytesAsync for {Url}", url);
+            return null;
         }
     }
 }
@@ -511,6 +569,41 @@ class AgentOrchestrator : IAgentOrchestrator
     {
         var mafEndpoint = NormalizeServiceBaseEndpoint(ResolveServiceEndpoint(_configuration["MAF_AGENT_ENDPOINT"], "http://127.0.0.1:5055"));
         return await _agentClient.PostAsync<ActionResult>($"{mafEndpoint}/api/actions/execute", request, cancellationToken);
+    }
+
+    public async Task<List<KnowledgeDocInfo>> GetIndexedDocsAsync(CancellationToken cancellationToken = default)
+    {
+        var mafEndpoint = NormalizeServiceBaseEndpoint(ResolveServiceEndpoint(_configuration["MAF_AGENT_ENDPOINT"], "http://127.0.0.1:5055"));
+        try
+        {
+            return await _agentClient.GetAsync<List<KnowledgeDocInfo>>($"{mafEndpoint}/api/knowledge/docs", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load indexed knowledge documents from the MAF agent.");
+            return new List<KnowledgeDocInfo>();
+        }
+    }
+
+    public async Task<KnowledgeDocContent?> GetKnowledgeDocAsync(string docId, CancellationToken cancellationToken = default)
+    {
+        var mafEndpoint = NormalizeServiceBaseEndpoint(ResolveServiceEndpoint(_configuration["MAF_AGENT_ENDPOINT"], "http://127.0.0.1:5055"));
+        try
+        {
+            return await _agentClient.GetAsync<KnowledgeDocContent>(
+                $"{mafEndpoint}/api/knowledge/doc/{Uri.EscapeDataString(docId)}", cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to load knowledge document '{DocId}' from the MAF agent.", docId);
+            return null;
+        }
+    }
+
+    public async Task<(byte[] Bytes, string ContentType)?> GetPitchImageAsync(CancellationToken cancellationToken = default)
+    {
+        var mafEndpoint = NormalizeServiceBaseEndpoint(ResolveServiceEndpoint(_configuration["MAF_AGENT_ENDPOINT"], "http://127.0.0.1:5055"));
+        return await _agentClient.GetBytesAsync($"{mafEndpoint}/api/pitch/hero-image", cancellationToken);
     }
 
     public async Task<string> SendNemoMessageAsync(string message, string? sessionId, CancellationToken cancellationToken = default)
@@ -843,12 +936,14 @@ class ChatService : IChatService
         var chips = string.Join(string.Empty, sources.Select(source =>
         {
             var docId = System.Net.WebUtility.HtmlEncode(source.DocId);
+            var docIdUrl = Uri.EscapeDataString(source.DocId);
             var title = System.Net.WebUtility.HtmlEncode(source.Title);
             var snippet = System.Net.WebUtility.HtmlEncode(source.Snippet);
-            var tooltip = System.Net.WebUtility.HtmlEncode($"{source.Title} — score {source.Score:0.000}");
-            return $"<span class=\"source-chip\" title=\"{tooltip}\" data-doc-id=\"{docId}\">" +
+            var tooltip = System.Net.WebUtility.HtmlEncode($"Open {source.Title} — score {source.Score:0.000}");
+            return $"<a class=\"source-chip\" href=\"/knowledge/{docIdUrl}\" target=\"_blank\" rel=\"noopener\" " +
+                   $"title=\"{tooltip}\" data-doc-id=\"{docId}\">" +
                    $"<strong>{docId}</strong> {title}" +
-                   $"<span class=\"source-chip-snippet\">{snippet}</span></span>";
+                   $"<span class=\"source-chip-snippet\">{snippet}</span></a>";
         }));
 
         return $"<div class=\"grounded-sources\" data-testid=\"grounded-sources\">" +
@@ -1000,6 +1095,86 @@ class ChatService : IChatService
                normalizedMessage.StartsWith("create", StringComparison.Ordinal) ||
                normalizedMessage.StartsWith("execute", StringComparison.Ordinal) ||
                normalizedMessage.StartsWith("run", StringComparison.Ordinal);
+    }
+}
+
+/// <summary>
+/// Renders standalone, self-contained HTML pages for the indexed knowledge documents: a listing of
+/// every indexed document and an individual document viewer. Markdown is rendered with HTML disabled
+/// so untrusted document content cannot inject markup.
+/// </summary>
+static class KnowledgeViews
+{
+    private static readonly MarkdownPipeline Pipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .DisableHtml()
+        .Build();
+
+    private const string PageStyle =
+        "<style>" +
+        "body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:2rem;}" +
+        ".wrap{max-width:860px;margin:0 auto;}" +
+        "a{color:#38bdf8;}" +
+        ".back{display:inline-block;margin-bottom:1.25rem;font-size:.9rem;}" +
+        ".doc-card{display:block;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:1rem 1.25rem;margin-bottom:.75rem;text-decoration:none;color:inherit;}" +
+        ".doc-card:hover{border-color:#38bdf8;}" +
+        ".doc-card .id{font-family:ui-monospace,monospace;color:#38bdf8;font-weight:600;}" +
+        ".doc-card .cat{float:right;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;}" +
+        ".content{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:1.5rem 2rem;}" +
+        ".content h1,.content h2,.content h3{color:#f8fafc;}" +
+        ".content code{background:#0f172a;padding:.15rem .35rem;border-radius:4px;}" +
+        ".content table{border-collapse:collapse;}" +
+        ".content th,.content td{border:1px solid #334155;padding:.4rem .6rem;}" +
+        ".badge{font-family:ui-monospace,monospace;color:#38bdf8;}" +
+        "</style>";
+
+    public static string RenderIndexPage(IReadOnlyList<KnowledgeDocInfo> docs)
+    {
+        var items = docs.Count == 0
+            ? "<p>No indexed documents are available. Ensure the MAF Action Agent is running.</p>"
+            : string.Join(string.Empty, docs.Select(d =>
+            {
+                var id = System.Net.WebUtility.HtmlEncode(d.DocId);
+                var idUrl = Uri.EscapeDataString(d.DocId);
+                var title = System.Net.WebUtility.HtmlEncode(d.Title);
+                var cat = System.Net.WebUtility.HtmlEncode(d.Category);
+                return $"<a class=\"doc-card\" href=\"/knowledge/{idUrl}\"><span class=\"cat\">{cat}</span>" +
+                       $"<span class=\"id\">{id}</span> &middot; {title}</a>";
+            }));
+
+        return "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
+               "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+               "<title>Indexed knowledge documents</title>" + PageStyle + "</head><body><div class=\"wrap\">" +
+               "<a class=\"back\" href=\"/\">&larr; Back to chat</a>" +
+               "<h1>Indexed knowledge documents</h1>" +
+               "<p>These are the runbooks and policies grounding the MAF Action Agent's responses.</p>" +
+               items + "</div></body></html>";
+    }
+
+    public static string RenderDocPage(KnowledgeDocContent doc)
+    {
+        var title = System.Net.WebUtility.HtmlEncode(doc.Title);
+        var id = System.Net.WebUtility.HtmlEncode(doc.DocId);
+        var cat = System.Net.WebUtility.HtmlEncode(doc.Category);
+        var body = Markdown.ToHtml(doc.Markdown ?? string.Empty, Pipeline);
+
+        return "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
+               "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+               $"<title>{id} — {title}</title>" + PageStyle + "</head><body><div class=\"wrap\">" +
+               "<a class=\"back\" href=\"/knowledge\">&larr; All indexed documents</a>" +
+               $"<h1><span class=\"badge\">{id}</span> {title}</h1>" +
+               $"<p style=\"color:#94a3b8;\">Category: {cat}</p>" +
+               $"<div class=\"content\">{body}</div></div></body></html>";
+    }
+
+    public static string RenderNotFoundPage(string docId)
+    {
+        var id = System.Net.WebUtility.HtmlEncode(docId);
+        return "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
+               "<title>Document not found</title>" + PageStyle + "</head><body><div class=\"wrap\">" +
+               "<a class=\"back\" href=\"/knowledge\">&larr; All indexed documents</a>" +
+               $"<h1>Document not found</h1><p>No indexed document with id <span class=\"badge\">{id}</span> was found.</p>" +
+               "</div></body></html>";
     }
 }
 

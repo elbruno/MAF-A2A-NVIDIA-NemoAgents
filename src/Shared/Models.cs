@@ -92,6 +92,27 @@ public class KnowledgeSource
     public double Score { get; set; }
 }
 
+/// <summary>
+/// Summary metadata for one indexed knowledge document (used by the indexed-docs listing).
+/// </summary>
+public class KnowledgeDocInfo
+{
+    public string DocId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Full content of one indexed knowledge document (raw Markdown) for in-app viewing.
+/// </summary>
+public class KnowledgeDocContent
+{
+    public string DocId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string Markdown { get; set; } = string.Empty;
+}
+
 public class AlertRequest
 {
     public string AlertLevel { get; set; } = string.Empty; // Critical, High, Medium, Low

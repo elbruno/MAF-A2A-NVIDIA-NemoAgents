@@ -1,5 +1,5 @@
 using ElBruno.LocalEmbeddings.VectorData.Extensions;
-using ElBruno.Text2Image.Foundry.Extensions;
+using ElBruno.Text2Image.Foundry;
 using MafActionAgent.Agents;
 using MafActionAgent.Rag;
 using Microsoft.AspNetCore.Builder;
@@ -118,6 +118,7 @@ builder.Services
     .AddVectorStoreCollection<string, KnowledgeDocument>("runbooks");
 
 builder.Services.AddSingleton<KnowledgeSearch>();
+builder.Services.AddSingleton<KnowledgeCatalog>();
 builder.Services.AddSingleton<McpToolProvider>();
 builder.Services.AddHostedService<KnowledgeIngestionService>();
 
@@ -138,19 +139,36 @@ builder.Services.AddSingleton<IActionExecutor>(sp => new GroundedActionAgent(
 
 builder.Services.AddSingleton<IA2ABridge, A2ABridge>();
 
-// --- Optional pitch image agent (MEAI IImageGenerator via Microsoft Foundry); default off ---
+// --- Optional pitch image agent (MEAI IImageGenerator via Microsoft Foundry / GPT-Image-2); default off ---
 if (PitchImageAgent.IsEnabled(configuration))
 {
     var imageEndpoint = configuration["FOUNDRY_IMAGE_ENDPOINT"];
     var imageApiKey = configuration["FOUNDRY_IMAGE_API_KEY"];
     if (!string.IsNullOrWhiteSpace(imageEndpoint) && !string.IsNullOrWhiteSpace(imageApiKey))
     {
-        builder.Services.AddFlux2Generator(
-            endpoint: imageEndpoint,
-            apiKey: imageApiKey,
-            modelName: configuration["FOUNDRY_IMAGE_MODEL_NAME"] ?? "FLUX.2 Flex",
-            modelId: configuration["FOUNDRY_IMAGE_MODEL_ID"] ?? "FLUX.2-flex");
-        logger.LogInformation("Pitch image agent enabled with Microsoft Foundry image generator.");
+        // GPT-Image-2 (Azure OpenAI) is a high-quality but slow model (~3-4 min), so it is only ever
+        // used to pre-render/startup-cache the cold-open hero image -- never on a live request path.
+        // A generous timeout (default 300s, matching the library CLI) is applied. Registered as the
+        // MEAI IImageGenerator building block so PitchImageAgent stays model-agnostic.
+        var imageDeployment = configuration["FOUNDRY_IMAGE_DEPLOYMENT"] ?? "gpt-image-2";
+        var imageModelName = configuration["FOUNDRY_IMAGE_MODEL_NAME"] ?? "GPT-Image-2";
+        var imageTimeout = int.TryParse(configuration["FOUNDRY_IMAGE_TIMEOUT_SECONDS"], out var t) ? t : 300;
+
+        builder.Services.AddHttpClient();
+        builder.Services.AddSingleton<ElBruno.Text2Image.IImageGenerator>(sp =>
+        {
+            var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+            return new GptImage2Generator(
+                endpoint: imageEndpoint,
+                apiKey: imageApiKey,
+                httpClient: httpClient,
+                modelName: imageModelName,
+                deploymentName: imageDeployment,
+                timeoutSeconds: imageTimeout);
+        });
+        logger.LogInformation(
+            "Pitch image agent enabled with GPT-Image-2 (deployment={Deployment}, timeout={Timeout}s).",
+            imageDeployment, imageTimeout);
     }
     else
     {
@@ -259,6 +277,22 @@ app.MapGet("/api/pitch/hero-image", () =>
         : Results.NotFound(new { message = "No pitch image available. Enable ENABLE_IMAGE_AGENT to generate one." });
 })
 .WithName("GetPitchHeroImage")
+.WithOpenApi();
+
+// --- Indexed knowledge documents (list + raw Markdown) for the Web UI document viewer ---
+app.MapGet("/api/knowledge/docs", (KnowledgeCatalog catalog) =>
+    Results.Ok(catalog.ListDocs()))
+.WithName("ListKnowledgeDocs")
+.WithOpenApi();
+
+app.MapGet("/api/knowledge/doc/{docId}", (string docId, KnowledgeCatalog catalog) =>
+{
+    var doc = catalog.GetDoc(docId);
+    return doc is not null
+        ? Results.Ok(doc)
+        : Results.NotFound(new { message = $"Unknown knowledge document '{docId}'." });
+})
+.WithName("GetKnowledgeDoc")
 .WithOpenApi();
 
 await app.RunAsync();

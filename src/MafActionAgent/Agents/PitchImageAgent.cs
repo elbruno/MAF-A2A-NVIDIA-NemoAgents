@@ -23,6 +23,7 @@ internal sealed class PitchImageAgent : IHostedService
     private readonly IConfiguration _configuration;
     private readonly ILogger<PitchImageAgent> _logger;
     private readonly IImageGenerator? _imageGenerator;
+    private readonly CancellationTokenSource _stoppingCts = new();
 
     public PitchImageAgent(
         IConfiguration configuration,
@@ -41,34 +42,43 @@ internal sealed class PitchImageAgent : IHostedService
     public static bool IsEnabled(IConfiguration configuration) =>
         string.Equals(configuration["ENABLE_IMAGE_AGENT"], "true", StringComparison.OrdinalIgnoreCase);
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         if (!IsEnabled(_configuration))
         {
-            return;
+            return Task.CompletedTask;
         }
 
+        var cachePath = CachedImagePath;
+
+        if (File.Exists(cachePath))
+        {
+            _logger.LogInformation("Pitch image agent: using cached incident-hero image at {Path}.", cachePath);
+            return Task.CompletedTask;
+        }
+
+        if (_imageGenerator is null)
+        {
+            _logger.LogWarning(
+                "Pitch image agent is enabled but no image generator is configured " +
+                "(set FOUNDRY_IMAGE_ENDPOINT / FOUNDRY_IMAGE_API_KEY). Skipping image generation.");
+            return Task.CompletedTask;
+        }
+
+        // GPT-Image-2 can take several minutes. Run generation in the background so it never blocks
+        // application/Aspire startup (the cold-open image simply appears once it is ready; the Web UI
+        // polls /api/pitch/hero-image). Fully fire-and-forget and fault-tolerant.
+        _ = Task.Run(() => GenerateAndCacheAsync(cachePath, _stoppingCts.Token), CancellationToken.None);
+        return Task.CompletedTask;
+    }
+
+    private async Task GenerateAndCacheAsync(string cachePath, CancellationToken cancellationToken)
+    {
         try
         {
-            var cachePath = CachedImagePath;
-
-            if (File.Exists(cachePath))
-            {
-                _logger.LogInformation("Pitch image agent: using cached incident-hero image at {Path}.", cachePath);
-                return;
-            }
-
-            if (_imageGenerator is null)
-            {
-                _logger.LogWarning(
-                    "Pitch image agent is enabled but no image generator is configured " +
-                    "(set FOUNDRY_IMAGE_ENDPOINT / FOUNDRY_IMAGE_API_KEY). Skipping image generation.");
-                return;
-            }
-
             _logger.LogInformation("Pitch image agent: generating incident-hero image (one-time, cached)...");
 
-            var result = await _imageGenerator.GenerateAsync(IncidentHeroPrompt, options: null, cancellationToken);
+            var result = await _imageGenerator!.GenerateAsync(IncidentHeroPrompt, options: null, cancellationToken);
 
             Directory.CreateDirectory(Path.GetDirectoryName(cachePath)!);
             await File.WriteAllBytesAsync(cachePath, result.ImageBytes, cancellationToken);
@@ -85,5 +95,9 @@ internal sealed class PitchImageAgent : IHostedService
         }
     }
 
-    public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task StopAsync(CancellationToken cancellationToken)
+    {
+        _stoppingCts.Cancel();
+        return Task.CompletedTask;
+    }
 }

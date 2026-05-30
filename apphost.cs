@@ -10,6 +10,14 @@ var azureOpenAiEndpoint = builder.AddParameter("azure-openai-endpoint", secret: 
 var azureOpenAiDeploymentName = builder.AddParameter("azure-openai-deployment-name", secret: true);
 var azureOpenAiApiKey = builder.AddParameter("azure-openai-api-key", secret: true);
 
+// Image generation (GPT-Image-2 via Azure OpenAI / ElBruno.Text2Image.Foundry) — used by the
+// optional, additive pitch image agent. Aspire prompts for these secrets at startup. Generation is
+// background/cached and fault-tolerant, so leaving them blank simply disables the cold-open image.
+var enableImageAgent = builder.AddParameter("enable-image-agent", value: "false");
+var imageEndpoint = builder.AddParameter("gpt-image-endpoint", secret: true);
+var imageApiKey = builder.AddParameter("gpt-image-api-key", secret: true);
+var imageDeployment = builder.AddParameter("gpt-image-deployment", value: "gpt-image-2");
+
 // NeMo Data Analysis Agent (Executable - Python)
 var nemo = builder.AddExecutable(
         name: "nemo-agent",
@@ -61,6 +69,10 @@ var mafAgent = builder.AddExecutable(
     .WithEnvironment("ENABLE_OTEL_TRACING", "true")
     .WithEnvironment("ENABLE_MCP_RETRIEVAL", "false")
     .WithEnvironment("EMBEDDINGS_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
+    .WithEnvironment("ENABLE_IMAGE_AGENT", enableImageAgent)
+    .WithEnvironment("FOUNDRY_IMAGE_ENDPOINT", imageEndpoint)
+    .WithEnvironment("FOUNDRY_IMAGE_API_KEY", imageApiKey)
+    .WithEnvironment("FOUNDRY_IMAGE_DEPLOYMENT", imageDeployment)
     .WithOtlpExporter()
     .WaitFor(nemo)
     .WithUrlForEndpoint("http", url =>
