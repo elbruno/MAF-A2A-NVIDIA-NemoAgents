@@ -3,9 +3,10 @@ using ElBruno.Text2Image;
 namespace MafActionAgent.Agents;
 
 /// <summary>
-/// Optional, additive MAF "pitch" agent that pre-renders a single incident-hero image used as the
-/// demo cold-open. It is gated behind <c>ENABLE_IMAGE_AGENT</c> (default <c>false</c>) and is fully
-/// isolated from the grounded-action RAG path, so an image hiccup never affects the core demo.
+/// Additive MAF "pitch" agent that pre-renders a single incident-hero image used as the demo
+/// cold-open. It is always enabled and activates whenever GPT-Image-2 credentials are configured
+/// (<c>FOUNDRY_IMAGE_ENDPOINT</c> / <c>FOUNDRY_IMAGE_API_KEY</c>). It is fully isolated from the
+/// grounded-action RAG path, so an image hiccup never affects the core demo.
 ///
 /// Reliability design:
 /// - Runs once at startup (never on a live request path) and caches the result to disk.
@@ -20,18 +21,15 @@ internal sealed class PitchImageAgent : IHostedService
         "threshold, an alert badge, and a calm on-call engineer reviewing a runbook. Flat vector style, " +
         "blue and teal palette, high contrast, professional, no text artifacts.";
 
-    private readonly IConfiguration _configuration;
     private readonly ILogger<PitchImageAgent> _logger;
     private readonly IImageGenerator? _imageGenerator;
     private readonly CancellationTokenSource _stoppingCts = new();
     private readonly SemaphoreSlim _generationGate = new(1, 1);
 
     public PitchImageAgent(
-        IConfiguration configuration,
         ILogger<PitchImageAgent> logger,
         IImageGenerator? imageGenerator = null)
     {
-        _configuration = configuration;
         _logger = logger;
         _imageGenerator = imageGenerator;
     }
@@ -40,19 +38,16 @@ internal sealed class PitchImageAgent : IHostedService
     public static string CachedImagePath =>
         Path.Combine(AppContext.BaseDirectory, "pitch", "incident-hero.png");
 
-    public static bool IsEnabled(IConfiguration configuration) =>
-        string.Equals(configuration["ENABLE_IMAGE_AGENT"], "true", StringComparison.OrdinalIgnoreCase);
-
     /// <summary>
-    /// True when the image agent is enabled and an image generator is configured, i.e. on-demand
-    /// generation can actually produce an image.
+    /// True when an image generator is configured, i.e. on-demand generation can actually produce an
+    /// image. The agent is always enabled; it only requires valid GPT-Image-2 credentials.
     /// </summary>
-    public bool IsConfigured => IsEnabled(_configuration) && _imageGenerator is not null;
+    public bool IsConfigured => _imageGenerator is not null;
 
     /// <summary>
     /// Returns the incident-hero image bytes, generating and caching them on demand if needed.
-    /// Returns <c>null</c> when the agent is disabled, no generator is configured, or generation
-    /// fails. Concurrent callers share a single generation pass.
+    /// Returns <c>null</c> when no generator is configured or generation fails. Concurrent callers
+    /// share a single generation pass.
     /// </summary>
     public async Task<byte[]?> EnsureImageAsync(CancellationToken cancellationToken)
     {
@@ -62,7 +57,7 @@ internal sealed class PitchImageAgent : IHostedService
             return await File.ReadAllBytesAsync(cachePath, cancellationToken);
         }
 
-        if (!IsEnabled(_configuration) || _imageGenerator is null)
+        if (_imageGenerator is null)
         {
             return null;
         }
@@ -86,11 +81,6 @@ internal sealed class PitchImageAgent : IHostedService
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
-        if (!IsEnabled(_configuration))
-        {
-            return Task.CompletedTask;
-        }
-
         var cachePath = CachedImagePath;
 
         if (File.Exists(cachePath))
@@ -102,7 +92,7 @@ internal sealed class PitchImageAgent : IHostedService
         if (_imageGenerator is null)
         {
             _logger.LogWarning(
-                "Pitch image agent is enabled but no image generator is configured " +
+                "Pitch image agent: no image generator is configured " +
                 "(set FOUNDRY_IMAGE_ENDPOINT / FOUNDRY_IMAGE_API_KEY). Skipping image generation.");
             return Task.CompletedTask;
         }

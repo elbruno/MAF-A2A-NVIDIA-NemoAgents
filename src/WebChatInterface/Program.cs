@@ -231,7 +231,7 @@ app.MapPost("/api/pitch/generate-image", async (IAgentOrchestrator orchestrator,
     return image is not null
         ? Results.File(image.Value.Bytes, image.Value.ContentType)
         : Results.Json(
-            new { message = "Image generation is unavailable. Enable the image agent (ENABLE_IMAGE_AGENT=true) with valid GPT-Image-2 credentials." },
+            new { message = "Image generation is unavailable. Configure GPT-Image-2 credentials (FOUNDRY_IMAGE_ENDPOINT / FOUNDRY_IMAGE_API_KEY) on the MAF action agent." },
             statusCode: StatusCodes.Status503ServiceUnavailable);
 })
 .ExcludeFromDescription();

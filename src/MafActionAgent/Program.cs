@@ -139,32 +139,33 @@ builder.Services.AddSingleton<IActionExecutor>(sp => new GroundedActionAgent(
 
 builder.Services.AddSingleton<IA2ABridge, A2ABridge>();
 
-// --- Optional pitch image agent (MEAI IImageGenerator via Microsoft Foundry / GPT-Image-2); default off ---
-// Always register the agent as a resolvable singleton so the on-demand image endpoint can use it
-// regardless of whether the background hosted service runs. When disabled/unconfigured it reports
-// IsConfigured=false and returns no image.
+// --- Pitch image agent (MEAI IImageGenerator via Microsoft Foundry / GPT-Image-2) ---
+// Always registered. The agent activates automatically when GPT-Image-2 credentials are present
+// (FOUNDRY_IMAGE_ENDPOINT / FOUNDRY_IMAGE_API_KEY); without them it is a no-op. The on-demand image
+// endpoint resolves this singleton; the background pre-render uses the same instance.
 builder.Services.AddSingleton<PitchImageAgent>();
 
-if (PitchImageAgent.IsEnabled(configuration))
 {
     var imageEndpoint = configuration["FOUNDRY_IMAGE_ENDPOINT"];
     var imageApiKey = configuration["FOUNDRY_IMAGE_API_KEY"];
     if (!string.IsNullOrWhiteSpace(imageEndpoint) && !string.IsNullOrWhiteSpace(imageApiKey))
     {
-        // GPT-Image-2 (Azure OpenAI) is a high-quality but slow model (~3-4 min), so it is only ever
-        // used to pre-render/startup-cache the cold-open hero image -- never on a live request path.
-        // A generous timeout (default 300s, matching the library CLI) is applied. Registered as the
-        // MEAI IImageGenerator building block so PitchImageAgent stays model-agnostic.
+        // GPT-Image-2 (Azure OpenAI) is a high-quality but slow model (~3-4 min). A generous timeout
+        // (default 300s, matching the library CLI) is applied. Registered as the MEAI IImageGenerator
+        // building block so PitchImageAgent stays model-agnostic.
+        // The OpenAI SDK expects the Azure OpenAI v1 path; normalize a bare resource URL to it so a
+        // plain "https://<resource>.services.ai.azure.com" endpoint works (avoids HTTP 404).
         var imageDeployment = configuration["FOUNDRY_IMAGE_DEPLOYMENT"] ?? "gpt-image-2";
         var imageModelName = configuration["FOUNDRY_IMAGE_MODEL_NAME"] ?? "GPT-Image-2";
         var imageTimeout = int.TryParse(configuration["FOUNDRY_IMAGE_TIMEOUT_SECONDS"], out var t) ? t : 300;
+        var normalizedImageEndpoint = NormalizeImageEndpoint(imageEndpoint);
 
         builder.Services.AddHttpClient();
         builder.Services.AddSingleton<ElBruno.Text2Image.IImageGenerator>(sp =>
         {
             var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
             return new GptImage2Generator(
-                endpoint: imageEndpoint,
+                endpoint: normalizedImageEndpoint,
                 apiKey: imageApiKey,
                 httpClient: httpClient,
                 modelName: imageModelName,
@@ -172,18 +173,33 @@ if (PitchImageAgent.IsEnabled(configuration))
                 timeoutSeconds: imageTimeout);
         });
         logger.LogInformation(
-            "Pitch image agent enabled with GPT-Image-2 (deployment={Deployment}, timeout={Timeout}s).",
-            imageDeployment, imageTimeout);
+            "Pitch image agent enabled with GPT-Image-2 (endpoint={Endpoint}, deployment={Deployment}, timeout={Timeout}s).",
+            normalizedImageEndpoint, imageDeployment, imageTimeout);
     }
     else
     {
         logger.LogWarning(
-            "ENABLE_IMAGE_AGENT=true but FOUNDRY_IMAGE_ENDPOINT / FOUNDRY_IMAGE_API_KEY are not set; " +
-            "the pitch image agent will run as a no-op.");
+            "Pitch image agent: FOUNDRY_IMAGE_ENDPOINT / FOUNDRY_IMAGE_API_KEY are not set; " +
+            "image generation will be unavailable until they are configured.");
     }
 
     // Background pre-render uses the same singleton instance as the on-demand endpoint.
     builder.Services.AddHostedService(sp => sp.GetRequiredService<PitchImageAgent>());
+}
+
+static string NormalizeImageEndpoint(string endpoint)
+{
+    var trimmed = endpoint.Trim().TrimEnd('/');
+    // Already targeting an explicit OpenAI v1/path or a non-Azure host: leave as-is.
+    if (trimmed.Contains("/openai", StringComparison.OrdinalIgnoreCase))
+    {
+        return trimmed;
+    }
+
+    return trimmed.Contains(".services.ai.azure.com", StringComparison.OrdinalIgnoreCase)
+           || trimmed.Contains(".openai.azure.com", StringComparison.OrdinalIgnoreCase)
+        ? $"{trimmed}/openai/v1"
+        : trimmed;
 }
 
 var app = builder.Build();
@@ -280,7 +296,7 @@ app.MapGet("/api/pitch/hero-image", () =>
     var path = PitchImageAgent.CachedImagePath;
     return System.IO.File.Exists(path)
         ? Results.File(path, "image/png")
-        : Results.NotFound(new { message = "No pitch image available. Enable ENABLE_IMAGE_AGENT to generate one." });
+        : Results.NotFound(new { message = "No pitch image available. Configure GPT-Image-2 credentials to generate one." });
 })
 .WithName("GetPitchHeroImage")
 .WithOpenApi();
@@ -292,7 +308,7 @@ app.MapPost("/api/pitch/generate-image", async (PitchImageAgent agent, HttpConte
     if (!agent.IsConfigured)
     {
         return Results.Json(
-            new { message = "Image agent is disabled. Set ENABLE_IMAGE_AGENT=true with FOUNDRY_IMAGE_ENDPOINT / FOUNDRY_IMAGE_API_KEY to enable it." },
+            new { message = "Image generation is unavailable. Set FOUNDRY_IMAGE_ENDPOINT / FOUNDRY_IMAGE_API_KEY with valid GPT-Image-2 credentials." },
             statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 

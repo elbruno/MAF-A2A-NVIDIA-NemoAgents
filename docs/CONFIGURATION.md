@@ -168,11 +168,12 @@ ENABLE_MCP_RETRIEVAL=false
 MCP_SERVER_ENDPOINT=https://learn.microsoft.com/api/mcp
 ```
 
-### Optional pitch image agent (`IImageGenerator`)
+### Pitch image agent (`IImageGenerator`)
 
-An **optional, additive** MAF agent can pre-render a single "incident hero" image for the demo
-cold-open. It is **disabled by default** (`ENABLE_IMAGE_AGENT=false`) and fully isolated from the
-grounded-action path, so an image hiccup never affects the core RAG/A2A demo.
+An **additive** MAF agent pre-renders a single "incident hero" image for the demo cold-open. It is
+**always enabled** and activates automatically whenever GPT-Image-2 credentials are configured
+(`FOUNDRY_IMAGE_ENDPOINT` / `FOUNDRY_IMAGE_API_KEY`); without them it is a no-op. It is fully isolated
+from the grounded-action path, so an image hiccup never affects the core RAG/A2A demo.
 
 - Implemented with **ElBruno.Text2Image.Foundry** (`Microsoft.Extensions.AI.IImageGenerator`) — the same
   MEAI building-block story as `IChatClient` and `IEmbeddingGenerator`.
@@ -186,8 +187,7 @@ grounded-action path, so an image hiccup never affects the core RAG/A2A demo.
 - Requires a GPT-Image-2 deployment on an Azure OpenAI / Foundry resource. Any failure degrades to a no-op.
 
 ```bash
-ENABLE_IMAGE_AGENT=false
-FOUNDRY_IMAGE_ENDPOINT=https://your-resource.services.ai.azure.com
+FOUNDRY_IMAGE_ENDPOINT=https://your-resource.services.ai.azure.com/openai/v1
 FOUNDRY_IMAGE_API_KEY=your-gpt-image-api-key
 FOUNDRY_IMAGE_DEPLOYMENT=gpt-image-2
 FOUNDRY_IMAGE_MODEL_NAME=GPT-Image-2
@@ -195,7 +195,7 @@ FOUNDRY_IMAGE_MODEL_NAME=GPT-Image-2
 ```
 
 > When running under Aspire, the AppHost prompts for the image secrets
-> (`gpt-image-endpoint`, `gpt-image-api-key`, `gpt-image-deployment`, `enable-image-agent`) and wires
+> (`gpt-image-endpoint`, `gpt-image-api-key`, `gpt-image-deployment`) and wires
 > them to the MAF agent automatically.
 
 ### Indexed knowledge documents viewer
@@ -288,9 +288,8 @@ curl http://127.0.0.1:5055/health
 | `EMBEDDINGS_MODEL` | No | sentence-transformers/all-MiniLM-L6-v2 | Local ONNX embedding model (ElBruno.LocalEmbeddings) used to index/search the MAF runbook knowledge base. No cloud embedding deployment required. |
 | `ENABLE_MCP_RETRIEVAL` | No | false | When `true`, the grounded MAF agent also loads tools from an MCP server. Failures degrade gracefully to local RAG. |
 | `MCP_SERVER_ENDPOINT` | No | <https://learn.microsoft.com/api/mcp> | MCP server endpoint used when `ENABLE_MCP_RETRIEVAL=true` |
-| `ENABLE_IMAGE_AGENT` | No | false | Enables the optional pitch image agent that pre-renders an incident-hero image at startup (cached) served at `/api/pitch/hero-image`. |
-| `FOUNDRY_IMAGE_ENDPOINT` | Conditional | - | GPT-Image-2 (Azure OpenAI) endpoint (required when `ENABLE_IMAGE_AGENT=true`) |
-| `FOUNDRY_IMAGE_API_KEY` | Conditional | - | GPT-Image-2 (Azure OpenAI) API key (required when `ENABLE_IMAGE_AGENT=true`) |
+| `FOUNDRY_IMAGE_ENDPOINT` | Conditional | - | GPT-Image-2 (Azure OpenAI) endpoint; when set (with the API key) the pitch image agent pre-renders an incident-hero image at startup (cached) served at `/api/pitch/hero-image`. Bare `*.services.ai.azure.com` URLs are auto-normalized to the `/openai/v1` path. |
+| `FOUNDRY_IMAGE_API_KEY` | Conditional | - | GPT-Image-2 (Azure OpenAI) API key (required to enable image generation) |
 | `FOUNDRY_IMAGE_DEPLOYMENT` | No | gpt-image-2 | Deployment name of the GPT-Image-2 model |
 | `FOUNDRY_IMAGE_MODEL_NAME` | No | GPT-Image-2 | Display name of the image model |
 | `FOUNDRY_IMAGE_TIMEOUT_SECONDS` | No | 300 | Request timeout (seconds) for image generation |

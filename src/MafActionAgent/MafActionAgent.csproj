@@ -29,7 +29,7 @@
     <!-- MCP option (Microsoft Learn MCP server) -->
     <PackageReference Include="ModelContextProtocol" Version="1.3.0" />
 
-    <!-- Optional image agent (MEAI IImageGenerator via Microsoft Foundry); gated by ENABLE_IMAGE_AGENT -->
+    <!-- Pitch image agent (MEAI IImageGenerator via Microsoft Foundry / GPT-Image-2) -->
     <!-- 1.2.11 adds the GPT-Image-2 generator (Azure OpenAI) -->
     <PackageReference Include="ElBruno.Text2Image.Foundry" Version="1.2.11" />
 
