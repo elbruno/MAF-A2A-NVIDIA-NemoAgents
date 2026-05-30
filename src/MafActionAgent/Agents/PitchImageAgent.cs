@@ -1,3 +1,5 @@
+using System.Security.Cryptography;
+using System.Text;
 using ElBruno.Text2Image;
 
 namespace MafActionAgent.Agents;
@@ -38,6 +40,10 @@ internal sealed class PitchImageAgent : IHostedService
     public static string CachedImagePath =>
         Path.Combine(AppContext.BaseDirectory, "pitch", "incident-hero.png");
 
+    /// <summary>Directory holding per-prompt generated images (keyed by a hash of the prompt).</summary>
+    private static string GeneratedImageDir =>
+        Path.Combine(AppContext.BaseDirectory, "pitch", "generated");
+
     /// <summary>
     /// True when an image generator is configured, i.e. on-demand generation can actually produce an
     /// image. The agent is always enabled; it only requires valid GPT-Image-2 credentials.
@@ -77,6 +83,56 @@ internal sealed class PitchImageAgent : IHostedService
         {
             _generationGate.Release();
         }
+    }
+
+    /// <summary>
+    /// Generates a brand-new image from an arbitrary user prompt using GPT-Image-2. Results are cached
+    /// per-prompt (keyed by a hash of the prompt text) so identical prompts return instantly without
+    /// re-billing the model. Returns <c>null</c> when no generator is configured, the prompt is empty,
+    /// or generation fails.
+    /// </summary>
+    public async Task<byte[]?> GenerateFromPromptAsync(string prompt, CancellationToken cancellationToken)
+    {
+        if (_imageGenerator is null || string.IsNullOrWhiteSpace(prompt))
+        {
+            return null;
+        }
+
+        var cachePath = GetPromptCachePath(prompt);
+        if (File.Exists(cachePath))
+        {
+            _logger.LogInformation("Pitch image agent: returning cached image for prompt hash {Path}.", Path.GetFileName(cachePath));
+            return await File.ReadAllBytesAsync(cachePath, cancellationToken);
+        }
+
+        try
+        {
+            _logger.LogInformation("Pitch image agent: generating image from user prompt ({Length} chars)...", prompt.Length);
+
+            var result = await _imageGenerator.GenerateAsync(prompt, options: null, cancellationToken);
+
+            Directory.CreateDirectory(GeneratedImageDir);
+            await File.WriteAllBytesAsync(cachePath, result.ImageBytes, cancellationToken);
+
+            _logger.LogInformation(
+                "Pitch image agent: prompt image generated in {Ms}ms and cached at {Path}.",
+                result.InferenceTimeMs,
+                cachePath);
+
+            return result.ImageBytes;
+        }
+        catch (Exception ex)
+        {
+            // Additive feature — never destabilize the core demo.
+            _logger.LogWarning(ex, "Pitch image agent failed to generate an image from the user prompt; continuing without it.");
+            return null;
+        }
+    }
+
+    private static string GetPromptCachePath(string prompt)
+    {
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(prompt.Trim())));
+        return Path.Combine(GeneratedImageDir, $"{hash[..16]}.png");
     }
 
     public Task StartAsync(CancellationToken cancellationToken)

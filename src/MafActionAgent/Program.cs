@@ -298,9 +298,10 @@ app.MapGet("/api/pitch/hero-image", () =>
 .WithName("GetPitchHeroImage")
 .WithOpenApi();
 
-// On-demand pitch image generation: returns the cached incident-hero image, generating it on demand
-// when needed. 503 when the image agent is disabled/unconfigured. Used by the Web UI sample prompt.
-app.MapPost("/api/pitch/generate-image", async (PitchImageAgent agent, HttpContext ctx) =>
+// On-demand pitch image generation. Generates a brand-new image from the caller-supplied prompt
+// (GPT-Image-2). Falls back to the cached incident-hero image when no prompt is provided. 503 when
+// the image agent is unconfigured. Used by the Web UI chat image-generation scenario.
+app.MapPost("/api/pitch/generate-image", async (PitchImageAgent agent, GenerateImageRequest? request, HttpContext ctx) =>
 {
     if (!agent.IsConfigured)
     {
@@ -309,7 +310,11 @@ app.MapPost("/api/pitch/generate-image", async (PitchImageAgent agent, HttpConte
             statusCode: StatusCodes.Status503ServiceUnavailable);
     }
 
-    var bytes = await agent.EnsureImageAsync(ctx.RequestAborted);
+    var prompt = request?.Prompt;
+    var bytes = string.IsNullOrWhiteSpace(prompt)
+        ? await agent.EnsureImageAsync(ctx.RequestAborted)
+        : await agent.GenerateFromPromptAsync(prompt!, ctx.RequestAborted);
+
     return bytes is not null
         ? Results.File(bytes, "image/png")
         : Results.Json(
@@ -336,3 +341,6 @@ app.MapGet("/api/knowledge/doc/{docId}", (string docId, KnowledgeCatalog catalog
 .WithOpenApi();
 
 await app.RunAsync();
+
+/// <summary>Request body for on-demand pitch image generation. <c>Prompt</c> is the user's text.</summary>
+internal sealed record GenerateImageRequest(string? Prompt);

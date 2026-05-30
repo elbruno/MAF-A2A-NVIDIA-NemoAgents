@@ -224,10 +224,22 @@ app.MapGet("/api/pitch/hero-image", async (IAgentOrchestrator orchestrator, Canc
 })
 .ExcludeFromDescription();
 
-// On-demand pitch image generation (proxied from the MAF agent); 503 when the image agent is disabled
-app.MapPost("/api/pitch/generate-image", async (IAgentOrchestrator orchestrator, CancellationToken ct) =>
+// On-demand pitch image generation (proxied from the MAF agent); 503 when the image agent is disabled.
+// Forwards the user's prompt so GPT-Image-2 generates a brand-new image from the chat message text.
+app.MapPost("/api/pitch/generate-image", async (HttpContext ctx, IAgentOrchestrator orchestrator, CancellationToken ct) =>
 {
-    var image = await orchestrator.GeneratePitchImageAsync(ct);
+    string? prompt = null;
+    try
+    {
+        var body = await ctx.Request.ReadFromJsonAsync<GenerateImageRequest>(ct);
+        prompt = body?.Prompt;
+    }
+    catch
+    {
+        // No/invalid JSON body — fall back to the default cold-open image.
+    }
+
+    var image = await orchestrator.GeneratePitchImageAsync(prompt, ct);
     return image is not null
         ? Results.File(image.Value.Bytes, image.Value.ContentType)
         : Results.Json(
@@ -251,7 +263,7 @@ interface IAgentOrchestrator
     Task<List<KnowledgeDocInfo>> GetIndexedDocsAsync(CancellationToken cancellationToken = default);
     Task<KnowledgeDocContent?> GetKnowledgeDocAsync(string docId, CancellationToken cancellationToken = default);
     Task<(byte[] Bytes, string ContentType)?> GetPitchImageAsync(CancellationToken cancellationToken = default);
-    Task<(byte[] Bytes, string ContentType)?> GeneratePitchImageAsync(CancellationToken cancellationToken = default);
+    Task<(byte[] Bytes, string ContentType)?> GeneratePitchImageAsync(string? prompt, CancellationToken cancellationToken = default);
 }
 
 interface IChatService
@@ -270,10 +282,13 @@ interface IAgentClient
     Task<T> GetAsync<T>(string url, CancellationToken cancellationToken = default);
     Task<T> PostAsync<T>(string url, object payload, CancellationToken cancellationToken = default);
     Task<(byte[] Bytes, string ContentType)?> GetBytesAsync(string url, CancellationToken cancellationToken = default);
-    Task<(byte[] Bytes, string ContentType)?> PostForBytesAsync(string url, CancellationToken cancellationToken = default);
+    Task<(byte[] Bytes, string ContentType)?> PostForBytesAsync(string url, object? payload = null, CancellationToken cancellationToken = default);
 }
 
 record AnalysisContextEntry(string SourcePrompt, string Summary, DateTime CapturedAtUtc);
+
+/// <summary>Request body for on-demand pitch image generation. <c>Prompt</c> is the user's chat text.</summary>
+record GenerateImageRequest(string? Prompt);
 
 // Service implementations
 class AgentClient : IAgentClient
@@ -355,12 +370,14 @@ class AgentClient : IAgentClient
         }
     }
 
-    public async Task<(byte[] Bytes, string ContentType)?> PostForBytesAsync(string url, CancellationToken cancellationToken = default)
+    public async Task<(byte[] Bytes, string ContentType)?> PostForBytesAsync(string url, object? payload = null, CancellationToken cancellationToken = default)
     {
         try
         {
-            using var emptyContent = new StringContent(string.Empty);
-            var response = await _httpClient.PostAsync(url, emptyContent, cancellationToken);
+            using HttpContent content = payload is null
+                ? new StringContent(string.Empty)
+                : new StringContent(JsonSerializer.Serialize(payload), System.Text.Encoding.UTF8, "application/json");
+            var response = await _httpClient.PostAsync(url, content, cancellationToken);
             if (!response.IsSuccessStatusCode)
             {
                 return null;
@@ -642,10 +659,11 @@ class AgentOrchestrator : IAgentOrchestrator
         return await _agentClient.GetBytesAsync($"{mafEndpoint}/api/pitch/hero-image", cancellationToken);
     }
 
-    public async Task<(byte[] Bytes, string ContentType)?> GeneratePitchImageAsync(CancellationToken cancellationToken = default)
+    public async Task<(byte[] Bytes, string ContentType)?> GeneratePitchImageAsync(string? prompt, CancellationToken cancellationToken = default)
     {
         var mafEndpoint = NormalizeServiceBaseEndpoint(ResolveServiceEndpoint(_configuration["MAF_AGENT_ENDPOINT"], "http://127.0.0.1:5055"));
-        return await _agentClient.PostForBytesAsync($"{mafEndpoint}/api/pitch/generate-image", cancellationToken);
+        object? payload = string.IsNullOrWhiteSpace(prompt) ? null : new { Prompt = prompt };
+        return await _agentClient.PostForBytesAsync($"{mafEndpoint}/api/pitch/generate-image", payload, cancellationToken);
     }
 
     public async Task<string> SendNemoMessageAsync(string message, string? sessionId, CancellationToken cancellationToken = default)

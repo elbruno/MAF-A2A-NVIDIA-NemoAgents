@@ -119,7 +119,7 @@
                     <select class="form-select" id="predefinedQuestionSelect">
                         <option value="">Select a test question...</option>
                         <option
-                            value="Generate an incident-response hero image">
+                            value="Generate an image of a modern site-reliability operations dashboard for a payments service incident: a rising error-rate line chart crossing a 5% threshold, an alert badge, and a calm on-call engineer reviewing a runbook. Flat vector style, blue and teal palette, high contrast, professional.">
                             🖼️ Generate an incident-response image (MAF image agent · GPT-Image-2)</option>
                         <option
                             value="Trigger an alert for the payments service error-rate spike and recommend the runbook remediation">
@@ -230,7 +230,7 @@
 
                                     // Image-generation intent is handled by the MAF image agent (not the NeMo/RAG path).
                                     if (isImageGenerationRequest(message)) {
-                                        await handleImageGenerationRequest();
+                                        await handleImageGenerationRequest(message);
                                         sendBtn.disabled = false;
                                         messageInput.disabled = false;
                                         messageInput.focus();
@@ -273,26 +273,25 @@
                                         /\b(generate|create|draw|render|make|show|produce)\b/.test(normalized);
                                 }
 
-                                async function handleImageGenerationRequest() {
+                                async function handleImageGenerationRequest(prompt) {
                                     const pending = createImagePendingIndicator();
                                     try {
-                                        const response = await fetch('/api/pitch/generate-image', { method: 'POST' });
+                                        const response = await fetch('/api/pitch/generate-image', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ prompt })
+                                        });
                                         pending.dispose();
 
                                         if (response.ok) {
                                             const blob = await response.blob();
                                             const url = URL.createObjectURL(blob);
-                                            const imgHtml = `<p>Here is the generated incident-response image:</p>` +
-                                                `<img src="${url}" alt="Generated incident-response image" class="chat-generated-image" />`;
-                                            addMessageToChat('agent', 'MAF Image Agent', 'Generated incident-response image', new Date(), imgHtml);
-
-                                            // Also surface it in the hero slot at the top of the page.
-                                            const heroImg = document.getElementById('pitchHeroImg');
-                                            const hero = document.getElementById('pitchHero');
-                                            if (heroImg && hero) {
-                                                heroImg.src = url;
-                                                hero.style.display = 'block';
-                                            }
+                                            const safePrompt = prompt
+                                                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                            const imgHtml = `<p>Here is the image generated from your prompt:</p>` +
+                                                `<p class="chat-image-prompt"><em>&ldquo;${safePrompt}&rdquo;</em></p>` +
+                                                `<img src="${url}" alt="Image generated from prompt: ${safePrompt}" class="chat-generated-image" />`;
+                                            addMessageToChat('agent', 'MAF Image Agent', 'Generated image from your prompt', new Date(), imgHtml);
                                         } else {
                                             let detail = 'The image agent is not available.';
                                             try {
