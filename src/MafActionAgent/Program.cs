@@ -150,11 +150,10 @@ builder.Services.AddSingleton<PitchImageAgent>();
     var imageApiKey = configuration["FOUNDRY_IMAGE_API_KEY"];
     if (!string.IsNullOrWhiteSpace(imageEndpoint) && !string.IsNullOrWhiteSpace(imageApiKey))
     {
-        // GPT-Image-2 (Azure OpenAI) is a high-quality but slow model (~3-4 min). A generous timeout
-        // (default 300s, matching the library CLI) is applied. Registered as the MEAI IImageGenerator
-        // building block so PitchImageAgent stays model-agnostic.
-        // The OpenAI SDK expects the Azure OpenAI v1 path; normalize a bare resource URL to it so a
-        // plain "https://<resource>.services.ai.azure.com" endpoint works (avoids HTTP 404).
+        // ElBruno.Text2Image.Foundry 1.2.11 builds an AzureOpenAIClient, which expects the BARE
+        // resource URL (it appends "/openai/deployments/{deployment}/images/generations" itself).
+        // Strip any "/openai/v1" (or other "/openai/...") suffix users may add for the raw REST API,
+        // otherwise the SDK produces a doubled path and returns HTTP 404.
         var imageDeployment = configuration["FOUNDRY_IMAGE_DEPLOYMENT"] ?? "gpt-image-2";
         var imageModelName = configuration["FOUNDRY_IMAGE_MODEL_NAME"] ?? "GPT-Image-2";
         var imageTimeout = int.TryParse(configuration["FOUNDRY_IMAGE_TIMEOUT_SECONDS"], out var t) ? t : 300;
@@ -190,16 +189,14 @@ builder.Services.AddSingleton<PitchImageAgent>();
 static string NormalizeImageEndpoint(string endpoint)
 {
     var trimmed = endpoint.Trim().TrimEnd('/');
-    // Already targeting an explicit OpenAI v1/path or a non-Azure host: leave as-is.
-    if (trimmed.Contains("/openai", StringComparison.OrdinalIgnoreCase))
-    {
-        return trimmed;
-    }
 
-    return trimmed.Contains(".services.ai.azure.com", StringComparison.OrdinalIgnoreCase)
-           || trimmed.Contains(".openai.azure.com", StringComparison.OrdinalIgnoreCase)
-        ? $"{trimmed}/openai/v1"
-        : trimmed;
+    // ElBruno.Text2Image.Foundry builds an AzureOpenAIClient, which expects the BARE resource URL
+    // (e.g. https://<resource>.services.ai.azure.com) and appends the
+    // "/openai/deployments/{deployment}/images/generations" path itself. If a user supplies the raw
+    // REST endpoint with an "/openai/v1" (or "/openai") suffix, the SDK would build a doubled path
+    // and return HTTP 404 -- so strip everything from "/openai" onward.
+    var openAiIndex = trimmed.IndexOf("/openai", StringComparison.OrdinalIgnoreCase);
+    return openAiIndex >= 0 ? trimmed[..openAiIndex] : trimmed;
 }
 
 var app = builder.Build();
