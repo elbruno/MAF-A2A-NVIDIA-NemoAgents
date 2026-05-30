@@ -1,17 +1,19 @@
+using ElBruno.LocalEmbeddings.VectorData.Extensions;
+using MafActionAgent.Agents;
+using MafActionAgent.Rag;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
-using OpenTelemetry;
-using OpenTelemetry.Instrumentation.AspNetCore;
-using OpenTelemetry.Instrumentation.Http;
 using OpenTelemetry.Logs;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using Shared.Models;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,15 +40,16 @@ builder.Services.AddLogging(loggingBuilder =>
     loggingBuilder.SetMinimumLevel(logLevel);
 });
 
-var logger = builder.Services.BuildServiceProvider().GetRequiredService<ILogger<Program>>();
-logger.LogInformation("Starting MAF Action Agent...");
+using var startupLoggerFactory = LoggerFactory.Create(b => b.AddConsole());
+var logger = startupLoggerFactory.CreateLogger("Startup");
+logger.LogInformation("Starting MAF Action Agent (grounded RAG + optional MCP)...");
 
 // OpenTelemetry Setup
 var otelEnabled = bool.TryParse(configuration["ENABLE_OTEL_TRACING"] ?? "true", out var enabled) && enabled;
 if (otelEnabled)
 {
     logger.LogInformation("Configuring OpenTelemetry tracing...");
-    
+
     var resource = ResourceBuilder.CreateDefault()
         .AddService(serviceName: "maf-action-agent", serviceVersion: "1.0.0");
     var otlpEndpoint = MafGenAiTelemetry.ResolveOtlpEndpoint(configuration);
@@ -63,13 +66,9 @@ if (otelEnabled)
 
             if (!string.IsNullOrWhiteSpace(otlpEndpoint))
             {
-                tracing.AddOtlpExporter(options =>
-                {
-                    options.Endpoint = new Uri(otlpEndpoint);
-                });
+                tracing.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
             }
-        }
-        );
+        });
 
     builder.Logging.AddOpenTelemetry(logging =>
     {
@@ -80,15 +79,12 @@ if (otelEnabled)
 
         if (!string.IsNullOrWhiteSpace(otlpEndpoint))
         {
-            logging.AddOtlpExporter(options =>
-            {
-                options.Endpoint = new Uri(otlpEndpoint);
-            });
+            logging.AddOtlpExporter(options => options.Endpoint = new Uri(otlpEndpoint));
         }
     });
 }
 
-// Add services
+// Controllers / JSON (PascalCase preserved for cross-service contract compatibility)
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -98,30 +94,51 @@ builder.Services.AddControllers()
 
 builder.Services.AddOpenApi();
 
-// Add CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy
-            .AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader();
-    });
+    options.AddPolicy("AllowAll", policy => policy
+        .AllowAnyOrigin()
+        .AllowAnyMethod()
+        .AllowAnyHeader());
 });
 
-// Add Health Checks
 builder.Services
     .AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "live" });
 
-// Add Application Services
-builder.Services.AddSingleton<IActionExecutor, ActionExecutor>();
+// --- RAG: local ONNX embeddings + in-memory vector store (zero cloud) ---
+builder.Services
+    .AddLocalEmbeddingsWithInMemoryVectorStore(options =>
+    {
+        options.ModelName = configuration["EMBEDDINGS_MODEL"] ?? "sentence-transformers/all-MiniLM-L6-v2";
+        options.MaxSequenceLength = 256;
+        options.EnsureModelDownloaded = true;
+    })
+    .AddVectorStoreCollection<string, KnowledgeDocument>("runbooks");
+
+builder.Services.AddSingleton<KnowledgeSearch>();
+builder.Services.AddSingleton<McpToolProvider>();
+builder.Services.AddHostedService<KnowledgeIngestionService>();
+
+// --- Chat model (Azure OpenAI; null => DEMO_MODE deterministic responses) ---
+var chatClient = AzureChatClientFactory.TryCreate(configuration, logger);
+if (chatClient is not null)
+{
+    builder.Services.AddSingleton(chatClient);
+}
+
+// --- Grounded MAF agent + A2A bridge ---
+builder.Services.AddSingleton<IActionExecutor>(sp => new GroundedActionAgent(
+    sp.GetRequiredService<KnowledgeSearch>(),
+    sp.GetRequiredService<McpToolProvider>(),
+    sp.GetRequiredService<IConfiguration>(),
+    sp.GetRequiredService<ILogger<GroundedActionAgent>>(),
+    sp.GetService<IChatClient>()));
+
 builder.Services.AddSingleton<IA2ABridge, A2ABridge>();
 
 var app = builder.Build();
 
-// Configure middleware
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -131,7 +148,7 @@ app.UseHttpsRedirection();
 app.UseCors("AllowAll");
 app.UseAuthorization();
 
-// Health check endpoints
+// Health endpoints
 app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
     Predicate = _ => true,
@@ -152,247 +169,60 @@ app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.Health
     Predicate = check => check.Tags.Contains("live"),
 });
 
-// A2A Agent Card endpoint
-app.MapGet("/.well-known/agent-card.json", GetAgentCard)
-    .Produces<Dictionary<string, object>>()
-    .WithName("GetAgentCard")
-    .WithOpenApi();
-
-// A2A JSON-RPC endpoint
-app.MapPost("/a2a/maf-action-agent", HandleA2ARequest)
-    .Produces<Dictionary<string, object>>()
-    .WithName("HandleA2ARequest")
-    .WithOpenApi();
-
-// Action execution endpoints
-app.MapControllers();
-
-app.MapPost("/api/actions/execute", async (ActionRequest request, IActionExecutor executor) =>
-{
-    logger.LogInformation($"Executing action: {request.ActionType}");
-    var result = await executor.ExecuteActionAsync(request);
-    return Results.Ok(result);
-})
-.Produces<ActionResult>()
-.WithName("ExecuteAction")
-.WithOpenApi();
-
-app.MapPost("/api/actions/trigger-alert", async (AlertRequest request, IActionExecutor executor) =>
-{
-    logger.LogInformation($"Triggering alert: {request.AlertLevel} - {request.Message}");
-    var result = await executor.TriggerAlertAsync(request);
-    return Results.Ok(result);
-})
-.Produces<ActionResult>()
-.WithName("TriggerAlert")
-.WithOpenApi();
-
-app.MapPost("/api/actions/generate-report", async (ReportRequest request, IActionExecutor executor) =>
-{
-    logger.LogInformation($"Generating report: {request.ReportType}");
-    var result = await executor.GenerateReportAsync(request);
-    return Results.Ok(result);
-})
-.Produces<ActionResult>()
-.WithName("GenerateReport")
-.WithOpenApi();
-
-await app.RunAsync();
-
-// Endpoint handlers
-async Task<IResult> GetAgentCard()
+// A2A Agent Card
+app.MapGet("/.well-known/agent-card.json", () =>
 {
     var card = new Dictionary<string, object>
     {
         { "name", "MAF Action Agent" },
-        { "description", "Executes actions based on data analysis from the NeMo agent" },
+        { "description", "Grounded action agent: plans and executes SRE actions using RAG over a local " +
+                         "runbook/policy knowledge base (and optional MCP), citing the sources it relied on." },
         { "version", "1.0.0" },
-        { "capabilities", new[] { "execute-actions", "trigger-alerts", "generate-reports" } },
+        { "capabilities", new[] { "execute-actions", "trigger-alerts", "generate-reports", "retrieve-knowledge", "grounded-actions" } },
         { "endpoint", "/a2a/maf-action-agent" },
         { "a2a_version", "1.0" }
     };
     return Results.Ok(card);
-}
+})
+.WithName("GetAgentCard")
+.WithOpenApi();
 
-async Task<IResult> HandleA2ARequest(HttpContext context, IA2ABridge bridge)
+// A2A JSON-RPC endpoint
+app.MapPost("/a2a/maf-action-agent", async (HttpContext context, IA2ABridge bridge) =>
 {
     using var reader = new System.IO.StreamReader(context.Request.Body);
     var body = await reader.ReadToEndAsync();
-    var response = await bridge.ProcessA2ARequestAsync(body);
-    return Results.Ok(System.Text.Json.JsonDocument.Parse(response).RootElement);
-}
+    var response = await bridge.ProcessA2ARequestAsync(body, context.RequestAborted);
+    return Results.Content(response, "application/json");
+})
+.WithName("HandleA2ARequest")
+.WithOpenApi();
 
-// Service interfaces
-interface IActionExecutor
+app.MapControllers();
+
+// Action endpoints (grounded)
+app.MapPost("/api/actions/execute", async (ActionRequest request, IActionExecutor executor, HttpContext ctx) =>
 {
-    Task<ActionResult> ExecuteActionAsync(ActionRequest request);
-    Task<ActionResult> TriggerAlertAsync(AlertRequest request);
-    Task<ActionResult> GenerateReportAsync(ReportRequest request);
-}
+    var result = await executor.ExecuteActionAsync(request, ctx.RequestAborted);
+    return Results.Ok(result);
+})
+.WithName("ExecuteAction")
+.WithOpenApi();
 
-interface IA2ABridge
+app.MapPost("/api/actions/trigger-alert", async (AlertRequest request, IActionExecutor executor, HttpContext ctx) =>
 {
-    Task<string> ProcessA2ARequestAsync(string jsonRpcRequest);
-}
+    var result = await executor.TriggerAlertAsync(request, ctx.RequestAborted);
+    return Results.Ok(result);
+})
+.WithName("TriggerAlert")
+.WithOpenApi();
 
-// Service implementations
-class ActionExecutor : IActionExecutor
+app.MapPost("/api/actions/generate-report", async (ReportRequest request, IActionExecutor executor, HttpContext ctx) =>
 {
-    private readonly ILogger<ActionExecutor> _logger;
-    private readonly string _modelName;
+    var result = await executor.GenerateReportAsync(request, ctx.RequestAborted);
+    return Results.Ok(result);
+})
+.WithName("GenerateReport")
+.WithOpenApi();
 
-    public ActionExecutor(ILogger<ActionExecutor> logger, IConfiguration configuration)
-    {
-        _logger = logger;
-        _modelName = configuration["AZURE_OPENAI_DEPLOYMENT_NAME"] ?? "maf-action-planner";
-    }
-
-    public async Task<ActionResult> ExecuteActionAsync(ActionRequest request)
-    {
-        using var activity = MafGenAiTelemetry.Source.StartActivity("maf.gen_ai.plan_action", ActivityKind.Internal);
-        activity?.SetTag("gen_ai.system", "microsoft.agent.framework");
-        activity?.SetTag("gen_ai.operation.name", "plan_action");
-        activity?.SetTag("gen_ai.request.model", _modelName);
-        activity?.SetTag("gen_ai.request.type", request.ActionType);
-
-        _logger.LogInformation($"Executing action: {request.ActionType} with params: {request.Parameters}");
-        
-        var result = new ActionResult
-        {
-            Success = true,
-            ActionType = request.ActionType,
-            ExecutedAt = DateTime.UtcNow,
-            Details = $"Action {request.ActionType} executed successfully"
-        };
-
-        activity?.SetTag("gen_ai.response.status", "success");
-        await Task.CompletedTask;
-        return result;
-    }
-
-    public async Task<ActionResult> TriggerAlertAsync(AlertRequest request)
-    {
-        using var activity = MafGenAiTelemetry.Source.StartActivity("maf.gen_ai.trigger_alert", ActivityKind.Internal);
-        activity?.SetTag("gen_ai.system", "microsoft.agent.framework");
-        activity?.SetTag("gen_ai.operation.name", "trigger_alert");
-        activity?.SetTag("gen_ai.request.model", _modelName);
-        activity?.SetTag("gen_ai.request.alert.level", request.AlertLevel);
-
-        _logger.LogWarning($"Alert triggered: [{request.AlertLevel}] {request.Message}");
-        
-        var result = new ActionResult
-        {
-            Success = true,
-            ActionType = "trigger-alert",
-            ExecutedAt = DateTime.UtcNow,
-            Details = $"Alert sent at severity: {request.AlertLevel}"
-        };
-
-        activity?.SetTag("gen_ai.response.status", "success");
-        await Task.CompletedTask;
-        return result;
-    }
-
-    public async Task<ActionResult> GenerateReportAsync(ReportRequest request)
-    {
-        using var activity = MafGenAiTelemetry.Source.StartActivity("maf.gen_ai.generate_report", ActivityKind.Internal);
-        activity?.SetTag("gen_ai.system", "microsoft.agent.framework");
-        activity?.SetTag("gen_ai.operation.name", "generate_report");
-        activity?.SetTag("gen_ai.request.model", _modelName);
-        activity?.SetTag("gen_ai.request.report.type", request.ReportType);
-
-        _logger.LogInformation($"Generating report: {request.ReportType}");
-        
-        var result = new ActionResult
-        {
-            Success = true,
-            ActionType = "generate-report",
-            ExecutedAt = DateTime.UtcNow,
-            Details = $"Report {request.ReportType} generated and queued for delivery"
-        };
-
-        activity?.SetTag("gen_ai.response.status", "success");
-        await Task.CompletedTask;
-        return result;
-    }
-}
-
-class A2ABridge : IA2ABridge
-{
-    private readonly ILogger<A2ABridge> _logger;
-
-    public A2ABridge(ILogger<A2ABridge> logger)
-    {
-        _logger = logger;
-    }
-
-    public async Task<string> ProcessA2ARequestAsync(string jsonRpcRequest)
-    {
-        using var activity = MafGenAiTelemetry.Source.StartActivity("maf.gen_ai.process_a2a", ActivityKind.Server);
-        activity?.SetTag("gen_ai.system", "microsoft.agent.framework");
-        activity?.SetTag("gen_ai.operation.name", "a2a_request");
-
-        _logger.LogDebug($"Processing A2A request: {jsonRpcRequest}");
-        
-        // Parse JSON-RPC request and route to appropriate action
-        var response = new Dictionary<string, object>
-        {
-            { "jsonrpc", "2.0" },
-            { "result", "processed" },
-            { "timestamp", DateTime.UtcNow.ToString("O") }
-        };
-
-        activity?.SetTag("gen_ai.response.status", "processed");
-        await Task.CompletedTask;
-        return System.Text.Json.JsonSerializer.Serialize(response);
-    }
-}
-
-static class MafGenAiTelemetry
-{
-    internal static readonly ActivitySource Source = new("MafActionAgent.GenAI");
-    
-    internal static string? ResolveOtlpEndpoint(IConfiguration configuration)
-    {
-        var aspireEndpoint = configuration["ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT"];
-        if (!string.IsNullOrWhiteSpace(aspireEndpoint))
-        {
-            return aspireEndpoint;
-        }
-
-        var standardEndpoint = configuration["OTEL_EXPORTER_OTLP_ENDPOINT"];
-        if (!string.IsNullOrWhiteSpace(standardEndpoint))
-        {
-            return standardEndpoint;
-        }
-
-        return null;
-    }
-}
-
-// Request/Response DTOs
-public class ActionRequest
-{
-    public string ActionType { get; set; } = string.Empty;
-    public Dictionary<string, object>? Parameters { get; set; }
-}
-
-public class AlertRequest
-{
-    public string AlertLevel { get; set; } = string.Empty;
-    public string Message { get; set; } = string.Empty;
-}
-
-public class ReportRequest
-{
-    public string ReportType { get; set; } = string.Empty;
-    public Dictionary<string, object>? ReportData { get; set; }
-}
-
-public class ActionResult
-{
-    public bool Success { get; set; }
-    public string ActionType { get; set; } = string.Empty;
-    public DateTime ExecutedAt { get; set; }
-    public string Details { get; set; } = string.Empty;
-}
+await app.RunAsync();

@@ -11,7 +11,24 @@
   <ItemGroup>
     <!-- ASP.NET Core -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
-    
+
+    <!-- AI building blocks (Chat + Embeddings) -->
+    <PackageReference Include="Azure.AI.OpenAI" Version="2.8.0-beta.1" />
+    <PackageReference Include="Azure.Identity" Version="1.18.0" />
+    <PackageReference Include="Microsoft.Extensions.AI" Version="10.6.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.6.0" />
+
+    <!-- Microsoft Agent Framework -->
+    <PackageReference Include="Microsoft.Agents.AI" Version="1.8.0" />
+
+    <!-- RAG: local ONNX embeddings (zero cloud) + in-memory vector store -->
+    <PackageReference Include="Microsoft.Extensions.VectorData.Abstractions" Version="10.6.0" />
+    <PackageReference Include="ElBruno.LocalEmbeddings" Version="1.5.0" />
+    <PackageReference Include="ElBruno.LocalEmbeddings.VectorData" Version="1.5.0" />
+
+    <!-- MCP option (Microsoft Learn MCP server) -->
+    <PackageReference Include="ModelContextProtocol" Version="1.3.0" />
+
     <!-- Logging & Observability -->
     <PackageReference Include="Microsoft.Extensions.Logging" Version="10.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.0" />
@@ -32,6 +49,11 @@
     
     <!-- Shared Library -->
     <ProjectReference Include="../Shared/Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Knowledge base (runbooks/policies) copied to output for startup ingestion -->
+    <None Include="knowledge\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>

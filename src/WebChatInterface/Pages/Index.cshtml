@@ -4,6 +4,57 @@
     ViewData["Title"] = "Chat Interface";
 }
 
+<style>
+    .grounded-sources {
+        margin-top: 10px;
+        padding-top: 8px;
+        border-top: 1px dashed #ccc;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        align-items: center;
+    }
+    .grounded-sources-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #555;
+        margin-right: 4px;
+    }
+    .source-chip {
+        position: relative;
+        display: inline-block;
+        background: #eef3ff;
+        border: 1px solid #c3d4ff;
+        color: #1b3a7a;
+        border-radius: 12px;
+        padding: 2px 10px;
+        font-size: 0.78rem;
+        cursor: default;
+        max-width: 320px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .source-chip-snippet {
+        display: none;
+    }
+    .source-chip:hover .source-chip-snippet {
+        display: block;
+        position: absolute;
+        z-index: 10;
+        left: 0;
+        top: 110%;
+        width: 320px;
+        white-space: normal;
+        background: #fff;
+        border: 1px solid #c3d4ff;
+        border-radius: 8px;
+        padding: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        color: #333;
+    }
+</style>
+
 <div class="container mt-5">
     <div class="row">
         <div class="col-lg-8 offset-lg-2">
@@ -29,6 +80,8 @@
                 <div class="input-group">
                     <select class="form-select" id="predefinedQuestionSelect">
                         <option value="">Select a test question...</option>
+                        <option value="Trigger an alert for the payments service error-rate spike and recommend the runbook remediation">🧯 Grounded action: payments error-rate spike → runbook (MAF + RAG)</option>
+                        <option value="Generate an incident report for the payments error-rate spike using the runbook and policy">📝 Grounded report: payments incident from runbook (MAF + RAG)</option>
                         <option value="Analyze quarterly revenue trends">📊 Analyze quarterly revenue trends (NeMo)</option>
                         <option value="Detect anomalies in system performance">⚠️ Detect anomalies in system performance (NeMo)</option>
                         <option value="Generate monthly metrics report">📈 Generate monthly metrics report (MAF)</option>

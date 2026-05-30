@@ -69,7 +69,8 @@ Then open the Web UI at `http://localhost:5000`.
 ### 4) Try sample prompts
 
 - `Analyze quarterly revenue trends` (**NeMo**)
-- `Trigger alert for high CPU usage` (**MAF**)
+- `Trigger an alert for the payments service error-rate spike and recommend the runbook remediation` (**MAF**, grounded RAG — cites runbook `RB-014` + policy `ASP-001`)
+- `Generate an incident report for the payments error-rate spike using the runbook and policy` (**MAF**, grounded RAG)
 - `Analyze quarterly revenue trends and then trigger alert for high CPU usage based on the analysis findings` (**NeMo + MAF**, 2-step demo intent)
 
 ### Want more details?
@@ -138,12 +139,15 @@ graph TB
 
 ### MAF Action Agent
 
-✅ **Action Execution** - Pluggable action handlers  
+✅ **Grounded Agent (RAG)** - Real Microsoft Agent Framework agent (`Microsoft.Agents.AI` / `Microsoft.Extensions.AI`) that grounds every action in a retrieved runbook/policy knowledge base instead of canned responses  
+✅ **Local Embeddings** - Knowledge indexing + semantic search via **ElBruno.LocalEmbeddings** (local ONNX MiniLM, no cloud embedding deployment)  
+✅ **Cited Sources** - Every `ActionResult` returns a structured `Sources` array (doc id, title, snippet, score) rendered as citation chips in the UI  
+✅ **Optional MCP Retrieval** - Loads additional tools from an MCP server behind `ENABLE_MCP_RETRIEVAL` (default off), with graceful fallback to local RAG  
 ✅ **Alert Triggering** - Multi-level alerts (Critical/High/Medium/Low)  
 ✅ **Report Generation** - Async report creation  
 ✅ **A2A Integration** - Agent discovery + JSON-RPC communication  
 ✅ **Health Checks** - Liveness, readiness, startup probes  
-✅ **OpenTelemetry** - Distributed tracing with GenAI-labeled MAF spans (`maf.gen_ai.*`)  
+✅ **OpenTelemetry** - Distributed tracing with GenAI-labeled MAF spans (`maf.gen_ai.*`) including retrieval tags  
 
 ### Web Chat Interface
 

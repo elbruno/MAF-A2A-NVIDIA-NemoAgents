@@ -73,6 +73,23 @@ public class ActionResult
     public DateTime ExecutedAt { get; set; }
     public string Details { get; set; } = string.Empty;
     public string? CorrelationId { get; set; }
+
+    /// <summary>
+    /// Knowledge sources the grounded action was based on. Populated from the
+    /// retrieval tool result (not parsed from model prose) so citations are deterministic.
+    /// </summary>
+    public List<KnowledgeSource> Sources { get; set; } = new();
+}
+
+/// <summary>
+/// A single retrieved knowledge chunk used to ground an action.
+/// </summary>
+public class KnowledgeSource
+{
+    public string DocId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Snippet { get; set; } = string.Empty;
+    public double Score { get; set; }
 }
 
 public class AlertRequest

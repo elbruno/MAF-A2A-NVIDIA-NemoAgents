@@ -59,6 +59,8 @@ var mafAgent = builder.AddExecutable(
     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", azureOpenAiDeploymentName)
     .WithEnvironment("AZURE_OPENAI_API_KEY", azureOpenAiApiKey)
     .WithEnvironment("ENABLE_OTEL_TRACING", "true")
+    .WithEnvironment("ENABLE_MCP_RETRIEVAL", "false")
+    .WithEnvironment("EMBEDDINGS_MODEL", "sentence-transformers/all-MiniLM-L6-v2")
     .WithOtlpExporter()
     .WaitFor(nemo)
     .WithUrlForEndpoint("http", url =>

@@ -140,6 +140,34 @@ aspire secret delete Parameters:nvidia-api-key
 
 ## Advanced Configuration
 
+### MAF grounded action agent (RAG + optional MCP)
+
+The MAF Action Agent is a real Microsoft Agent Framework agent (`Microsoft.Agents.AI` /
+`Microsoft.Extensions.AI`) that grounds every action in a retrieved knowledge base — it does
+**not** execute canned, hard-coded responses.
+
+- **Knowledge base**: Markdown runbooks/policies under `src/MafActionAgent/knowledge/*.md`
+  (each with a `doc_id` / `title` / `category` YAML front-matter). These are copied to the
+  build output and ingested at startup.
+- **Local embeddings**: Indexing and semantic search use **ElBruno.LocalEmbeddings** with a
+  local ONNX `sentence-transformers/all-MiniLM-L6-v2` model (384-dim). No cloud embedding
+  deployment is required; configure the model with `EMBEDDINGS_MODEL`.
+- **Chat model**: The agent uses your Azure OpenAI chat deployment (see
+  `AZURE_OPENAI_*`). If Azure OpenAI is not configured, the agent runs in **DEMO_MODE**
+  and still returns deterministic, retrieval-backed narratives and citations.
+- **Citations**: Every `ActionResult` includes a structured `Sources` array (doc id, title,
+  snippet, score) deterministically derived from the retrieval result. The Web UI renders
+  these as citation chips.
+- **Optional MCP**: Set `ENABLE_MCP_RETRIEVAL=true` to additionally load tools from an MCP
+  server (`MCP_SERVER_ENDPOINT`, default Microsoft Learn). MCP failures degrade gracefully to
+  local RAG, so the agent stays reliable for live demos.
+
+```bash
+EMBEDDINGS_MODEL=sentence-transformers/all-MiniLM-L6-v2
+ENABLE_MCP_RETRIEVAL=false
+MCP_SERVER_ENDPOINT=https://learn.microsoft.com/api/mcp
+```
+
 ### NeMo Workflow Config
 
 The NeMo agent supports two workflow profiles:
@@ -212,6 +240,9 @@ curl http://127.0.0.1:5055/health
 | `NEMO_FAST_MODEL_NAME` | No | meta/llama-3.2-3b-instruct | Model used by fast NeMo profile |
 | `MAF_HOST` | No | 127.0.0.1 | MAF agent hostname |
 | `MAF_PORT` | No | 5055 | MAF agent port |
+| `EMBEDDINGS_MODEL` | No | sentence-transformers/all-MiniLM-L6-v2 | Local ONNX embedding model (ElBruno.LocalEmbeddings) used to index/search the MAF runbook knowledge base. No cloud embedding deployment required. |
+| `ENABLE_MCP_RETRIEVAL` | No | false | When `true`, the grounded MAF agent also loads tools from an MCP server. Failures degrade gracefully to local RAG. |
+| `MCP_SERVER_ENDPOINT` | No | <https://learn.microsoft.com/api/mcp> | MCP server endpoint used when `ENABLE_MCP_RETRIEVAL=true` |
 | `WEB_UI_HOST` | No | 127.0.0.1 | Web UI hostname |
 | `WEB_UI_PORT` | No | 5000 | Web UI port |
 | `AGENT_HTTP_TIMEOUT_SECONDS` | No | 120 | HTTP client timeout used by Web UI when calling NeMo/MAF |

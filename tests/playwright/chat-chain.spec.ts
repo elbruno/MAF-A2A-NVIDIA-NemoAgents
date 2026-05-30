@@ -2,6 +2,9 @@ import { expect, test, type Page } from '@playwright/test';
 
 const ANALYSIS_PROMPT = 'Analyze quarterly revenue trends';
 const ACTION_PROMPT = 'Trigger alert for high CPU usage based on the analysis findings';
+const GROUNDED_ACTION_PROMPT =
+  'Trigger an alert for the payments service error-rate spike and recommend the runbook remediation';
+const KNOWLEDGE_DOC_ID_PATTERN = /(RB|ASP|EM|RT)-\d{3}/;
 
 type ChatTurn = {
   actor: string;
@@ -77,4 +80,22 @@ test('predefined question labels include routing suffixes', async ({ page }) => 
   expect(comboText).toContain('Analyze quarterly revenue trends (NeMo)');
   expect(comboText).toContain('Trigger alert for high CPU usage (MAF)');
   expect(comboText).toContain('based on the analysis findings (NeMo + MAF)');
+});
+
+test('grounded MAF action cites a knowledge-base source', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#messageInput')).toBeVisible();
+
+  const action = await sendPromptUntilAgent(page, GROUNDED_ACTION_PROMPT, 'maf');
+  expect(action.actor.toLowerCase()).toContain('maf');
+
+  // The action narrative must reference a knowledge-base document id (e.g. RB-014).
+  expect(action.content).toMatch(KNOWLEDGE_DOC_ID_PATTERN);
+
+  // Deterministic citation chips must be rendered from the retrieval result.
+  const sources = page.locator('[data-testid="grounded-sources"]').last();
+  await expect(sources).toBeVisible();
+  const chip = sources.locator('.source-chip').first();
+  await expect(chip).toBeVisible();
+  expect((await chip.getAttribute('data-doc-id')) ?? '').toMatch(KNOWLEDGE_DOC_ID_PATTERN);
 });

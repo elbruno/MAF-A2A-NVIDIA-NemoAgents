@@ -756,9 +756,17 @@ class ChatService : IChatService
                     actionDetails = $"{actionDetails}{Environment.NewLine}{Environment.NewLine}Used prior NeMo analysis context from this chat session.";
                 }
 
+                // Surface the grounded knowledge sources as deterministic citations so the
+                // demo (and Playwright assertions) can verify the action was grounded in the KB.
+                if (actionResult.Sources is { Count: > 0 })
+                {
+                    var citationIds = string.Join(", ", actionResult.Sources.Select(s => s.DocId));
+                    actionDetails = $"{actionDetails}{Environment.NewLine}{Environment.NewLine}Sources: {citationIds}";
+                }
+
                 response.RespondedBy = "MAF Action Agent";
                 response.Content = actionDetails;
-                response.ContentHtml = RenderMarkdown(actionDetails);
+                response.ContentHtml = RenderMarkdown(actionDetails) + BuildSourcesHtml(actionResult.Sources);
                 response.ActionsExecuted = new List<ActionResult> { actionResult };
                 return response;
             }
@@ -819,6 +827,32 @@ class ChatService : IChatService
         }
 
         return Markdown.ToHtml(content, MarkdownPipeline);
+    }
+
+    /// <summary>
+    /// Renders grounded knowledge sources as citation chips (with hover snippet/score) so the
+    /// action's grounding is visible in the chat UI.
+    /// </summary>
+    private static string BuildSourcesHtml(List<KnowledgeSource>? sources)
+    {
+        if (sources is null || sources.Count == 0)
+        {
+            return string.Empty;
+        }
+
+        var chips = string.Join(string.Empty, sources.Select(source =>
+        {
+            var docId = System.Net.WebUtility.HtmlEncode(source.DocId);
+            var title = System.Net.WebUtility.HtmlEncode(source.Title);
+            var snippet = System.Net.WebUtility.HtmlEncode(source.Snippet);
+            var tooltip = System.Net.WebUtility.HtmlEncode($"{source.Title} — score {source.Score:0.000}");
+            return $"<span class=\"source-chip\" title=\"{tooltip}\" data-doc-id=\"{docId}\">" +
+                   $"<strong>{docId}</strong> {title}" +
+                   $"<span class=\"source-chip-snippet\">{snippet}</span></span>";
+        }));
+
+        return $"<div class=\"grounded-sources\" data-testid=\"grounded-sources\">" +
+               $"<span class=\"grounded-sources-label\">Grounded in:</span>{chips}</div>";
     }
 
     private static string CleanNemoReply(string content)
