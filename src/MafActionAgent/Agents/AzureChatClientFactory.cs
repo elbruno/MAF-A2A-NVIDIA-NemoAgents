@@ -1,10 +1,11 @@
 using System;
-using Azure;
+using System.ClientModel;
 using Azure.AI.OpenAI;
 using Azure.Identity;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using OpenAI;
 
 namespace MafActionAgent.Agents;
 
@@ -32,15 +33,47 @@ public static class AzureChatClientFactory
         try
         {
             var apiKey = configuration["AZURE_OPENAI_API_KEY"];
-            var azureClient = string.IsNullOrWhiteSpace(apiKey)
-                ? new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredential())
-                : new AzureOpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
+            IChatClient chatClient;
 
-            logger.LogInformation(
-                "Azure OpenAI chat client created (endpoint={Endpoint}, deployment={Deployment}, auth={Auth}).",
-                endpoint, deployment, string.IsNullOrWhiteSpace(apiKey) ? "DefaultAzureCredential" : "ApiKey");
+            // Foundry models expose the OpenAI-compatible v1 surface
+            // (e.g. https://<resource>.services.ai.azure.com/openai/v1). When the endpoint targets
+            // that surface, use the OpenAI client with the configured API key; otherwise use the
+            // classic Azure OpenAI client. Keyless (DefaultAzureCredential) remains the fallback.
+            var isOpenAIv1 = endpoint.Contains("/openai/v1", StringComparison.OrdinalIgnoreCase)
+                || endpoint.Contains("services.ai.azure.com", StringComparison.OrdinalIgnoreCase);
 
-            IChatClient chatClient = azureClient.GetChatClient(deployment).AsIChatClient();
+            if (isOpenAIv1 && !string.IsNullOrWhiteSpace(apiKey))
+            {
+                // The OpenAI client expects the v1 base (…/openai/v1). Accept the bare resource
+                // host (…services.ai.azure.com/) too and normalize it so either form works.
+                var v1Endpoint = endpoint.TrimEnd('/');
+                if (!v1Endpoint.EndsWith("/openai/v1", StringComparison.OrdinalIgnoreCase))
+                {
+                    v1Endpoint += "/openai/v1";
+                }
+
+                var openAIClient = new OpenAIClient(
+                    new ApiKeyCredential(apiKey),
+                    new OpenAIClientOptions { Endpoint = new Uri(v1Endpoint) });
+
+                chatClient = openAIClient.GetChatClient(deployment).AsIChatClient();
+
+                logger.LogInformation(
+                    "OpenAI (Foundry v1) chat client created (endpoint={Endpoint}, model={Deployment}, auth=ApiKey).",
+                    v1Endpoint, deployment);
+            }
+            else
+            {
+                var azureClient = string.IsNullOrWhiteSpace(apiKey)
+                    ? new AzureOpenAIClient(new Uri(endpoint), new DefaultAzureCredential())
+                    : new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(apiKey));
+
+                chatClient = azureClient.GetChatClient(deployment).AsIChatClient();
+
+                logger.LogInformation(
+                    "Azure OpenAI chat client created (endpoint={Endpoint}, deployment={Deployment}, auth={Auth}).",
+                    endpoint, deployment, string.IsNullOrWhiteSpace(apiKey) ? "DefaultAzureCredential" : "ApiKey");
+            }
 
             return chatClient
                 .AsBuilder()

@@ -44,6 +44,7 @@ public sealed class GroundedActionAgent : IActionExecutor
     private readonly McpToolProvider _mcpToolProvider;
     private readonly ILogger<GroundedActionAgent> _logger;
     private readonly string _modelName;
+    private readonly float? _temperature;
 
     public GroundedActionAgent(
         KnowledgeSearch knowledgeSearch,
@@ -57,6 +58,11 @@ public sealed class GroundedActionAgent : IActionExecutor
         _logger = logger;
         _chatClient = chatClient;
         _modelName = configuration["AZURE_OPENAI_DEPLOYMENT_NAME"] ?? "maf-action-planner";
+
+        // Temperature is optional: deterministic (0) reads best for classic chat models, but reasoning
+        // models (e.g. gpt-5-mini) only accept the default value. Leave unset unless explicitly
+        // configured via AZURE_OPENAI_TEMPERATURE so the agent works across both model families.
+        _temperature = float.TryParse(configuration["AZURE_OPENAI_TEMPERATURE"], out var t) ? t : null;
     }
 
     public Task<ActionResult> ExecuteActionAsync(ActionRequest request, CancellationToken cancellationToken = default)
@@ -185,7 +191,7 @@ public sealed class GroundedActionAgent : IActionExecutor
                 ChatOptions = new ChatOptions
                 {
                     Instructions = AgentInstructions,
-                    Temperature = 0f,
+                    Temperature = _temperature,
                     Tools = tools
                 }
             };
