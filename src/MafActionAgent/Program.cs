@@ -1,4 +1,5 @@
 using ElBruno.LocalEmbeddings.VectorData.Extensions;
+using ElBruno.Text2Image.Foundry.Extensions;
 using MafActionAgent.Agents;
 using MafActionAgent.Rag;
 using Microsoft.AspNetCore.Builder;
@@ -137,6 +138,30 @@ builder.Services.AddSingleton<IActionExecutor>(sp => new GroundedActionAgent(
 
 builder.Services.AddSingleton<IA2ABridge, A2ABridge>();
 
+// --- Optional pitch image agent (MEAI IImageGenerator via Microsoft Foundry); default off ---
+if (PitchImageAgent.IsEnabled(configuration))
+{
+    var imageEndpoint = configuration["FOUNDRY_IMAGE_ENDPOINT"];
+    var imageApiKey = configuration["FOUNDRY_IMAGE_API_KEY"];
+    if (!string.IsNullOrWhiteSpace(imageEndpoint) && !string.IsNullOrWhiteSpace(imageApiKey))
+    {
+        builder.Services.AddFlux2Generator(
+            endpoint: imageEndpoint,
+            apiKey: imageApiKey,
+            modelName: configuration["FOUNDRY_IMAGE_MODEL_NAME"] ?? "FLUX.2 Flex",
+            modelId: configuration["FOUNDRY_IMAGE_MODEL_ID"] ?? "FLUX.2-flex");
+        logger.LogInformation("Pitch image agent enabled with Microsoft Foundry image generator.");
+    }
+    else
+    {
+        logger.LogWarning(
+            "ENABLE_IMAGE_AGENT=true but FOUNDRY_IMAGE_ENDPOINT / FOUNDRY_IMAGE_API_KEY are not set; " +
+            "the pitch image agent will run as a no-op.");
+    }
+
+    builder.Services.AddHostedService<PitchImageAgent>();
+}
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -223,6 +248,17 @@ app.MapPost("/api/actions/generate-report", async (ReportRequest request, IActio
     return Results.Ok(result);
 })
 .WithName("GenerateReport")
+.WithOpenApi();
+
+// Optional pitch image (incident-hero) cold-open asset; 404 when the image agent is disabled/unavailable
+app.MapGet("/api/pitch/hero-image", () =>
+{
+    var path = PitchImageAgent.CachedImagePath;
+    return System.IO.File.Exists(path)
+        ? Results.File(path, "image/png")
+        : Results.NotFound(new { message = "No pitch image available. Enable ENABLE_IMAGE_AGENT to generate one." });
+})
+.WithName("GetPitchHeroImage")
 .WithOpenApi();
 
 await app.RunAsync();

@@ -168,6 +168,25 @@ ENABLE_MCP_RETRIEVAL=false
 MCP_SERVER_ENDPOINT=https://learn.microsoft.com/api/mcp
 ```
 
+### Optional pitch image agent (`IImageGenerator`)
+
+An **optional, additive** MAF agent can pre-render a single "incident hero" image for the demo
+cold-open. It is **disabled by default** (`ENABLE_IMAGE_AGENT=false`) and fully isolated from the
+grounded-action path, so an image hiccup never affects the core RAG/A2A demo.
+
+- Implemented with **ElBruno.Text2Image** (`Microsoft.Extensions.AI.IImageGenerator`) — the same
+  MEAI building-block story as `IChatClient` and `IEmbeddingGenerator`.
+- Runs **once at startup** (never on a live request path), caches the PNG to disk (idempotent), and
+  serves it at `GET /api/pitch/hero-image`.
+- Requires a Microsoft Foundry image deployment (e.g. FLUX.2 Flex). Any failure degrades to a no-op.
+
+```bash
+ENABLE_IMAGE_AGENT=false
+FOUNDRY_IMAGE_ENDPOINT=https://your-resource.services.ai.azure.com
+FOUNDRY_IMAGE_API_KEY=your-foundry-image-api-key
+FOUNDRY_IMAGE_MODEL_ID=FLUX.2-flex
+```
+
 ### NeMo Workflow Config
 
 The NeMo agent supports two workflow profiles:
@@ -243,6 +262,11 @@ curl http://127.0.0.1:5055/health
 | `EMBEDDINGS_MODEL` | No | sentence-transformers/all-MiniLM-L6-v2 | Local ONNX embedding model (ElBruno.LocalEmbeddings) used to index/search the MAF runbook knowledge base. No cloud embedding deployment required. |
 | `ENABLE_MCP_RETRIEVAL` | No | false | When `true`, the grounded MAF agent also loads tools from an MCP server. Failures degrade gracefully to local RAG. |
 | `MCP_SERVER_ENDPOINT` | No | <https://learn.microsoft.com/api/mcp> | MCP server endpoint used when `ENABLE_MCP_RETRIEVAL=true` |
+| `ENABLE_IMAGE_AGENT` | No | false | Enables the optional pitch image agent that pre-renders an incident-hero image at startup (cached) served at `/api/pitch/hero-image`. |
+| `FOUNDRY_IMAGE_ENDPOINT` | Conditional | - | Microsoft Foundry image endpoint (required when `ENABLE_IMAGE_AGENT=true`) |
+| `FOUNDRY_IMAGE_API_KEY` | Conditional | - | Microsoft Foundry image API key (required when `ENABLE_IMAGE_AGENT=true`) |
+| `FOUNDRY_IMAGE_MODEL_NAME` | No | FLUX.2 Flex | Display name of the Foundry image model |
+| `FOUNDRY_IMAGE_MODEL_ID` | No | FLUX.2-flex | Deployment/model id of the Foundry image model |
 | `WEB_UI_HOST` | No | 127.0.0.1 | Web UI hostname |
 | `WEB_UI_PORT` | No | 5000 | Web UI port |
 | `AGENT_HTTP_TIMEOUT_SECONDS` | No | 120 | HTTP client timeout used by Web UI when calling NeMo/MAF |

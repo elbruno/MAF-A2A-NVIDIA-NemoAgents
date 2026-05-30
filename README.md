@@ -143,6 +143,7 @@ graph TB
 ✅ **Local Embeddings** - Knowledge indexing + semantic search via **ElBruno.LocalEmbeddings** (local ONNX MiniLM, no cloud embedding deployment)  
 ✅ **Cited Sources** - Every `ActionResult` returns a structured `Sources` array (doc id, title, snippet, score) rendered as citation chips in the UI  
 ✅ **Optional MCP Retrieval** - Loads additional tools from an MCP server behind `ENABLE_MCP_RETRIEVAL` (default off), with graceful fallback to local RAG  
+✅ **Optional Pitch Image Agent** - Pre-renders an incident-hero cold-open image via **ElBruno.Text2Image** (`IImageGenerator`) behind `ENABLE_IMAGE_AGENT` (default off), served at `/api/pitch/hero-image`  
 ✅ **Alert Triggering** - Multi-level alerts (Critical/High/Medium/Low)  
 ✅ **Report Generation** - Async report creation  
 ✅ **A2A Integration** - Agent discovery + JSON-RPC communication  
