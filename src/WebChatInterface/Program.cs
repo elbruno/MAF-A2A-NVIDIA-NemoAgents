@@ -54,7 +54,7 @@ var otelEnabled = bool.TryParse(configuration["ENABLE_OTEL_TRACING"] ?? "true", 
 if (otelEnabled)
 {
     logger.LogInformation("Configuring OpenTelemetry tracing...");
-    
+
     var resource = ResourceBuilder.CreateDefault()
         .AddService(serviceName: "web-chat-interface", serviceVersion: "1.0.0");
     var otlpEndpointConfigured = !string.IsNullOrWhiteSpace(configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
@@ -265,7 +265,7 @@ class AgentClient : IAgentClient
             var json = JsonSerializer.Serialize(payload);
             var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
             var response = await _httpClient.PostAsync(url, content, cancellationToken);
-            
+
             if (response.IsSuccessStatusCode)
             {
                 var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
@@ -300,7 +300,7 @@ class AgentOrchestrator : IAgentOrchestrator
     public async Task<List<ServiceDiscoveryResult>> DiscoverAgentsAsync(CancellationToken cancellationToken = default)
     {
         var results = new List<ServiceDiscoveryResult>();
-        
+
         // Discover NeMo Agent
         var nemoEndpoint = ResolveServiceEndpoint(_configuration["NEMO_A2A_ENDPOINT"], "http://127.0.0.1:8088");
         var nemoDiscoveryEndpoint = NormalizeServiceBaseEndpoint(nemoEndpoint);
