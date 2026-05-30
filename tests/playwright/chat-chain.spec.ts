@@ -80,6 +80,32 @@ test('predefined question labels include routing suffixes', async ({ page }) => 
   expect(comboText).toContain('Analyze quarterly revenue trends (NeMo)');
   expect(comboText).toContain('Trigger alert for high CPU usage (MAF)');
   expect(comboText).toContain('based on the analysis findings (NeMo + MAF)');
+  expect(comboText).toContain('Generate an incident-response image');
+});
+
+test('image-generation prompt routes to the MAF image agent', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#messageInput')).toBeVisible();
+
+  await page.fill('#messageInput', 'Generate an incident-response hero image');
+  await page.click('#sendBtn');
+
+  // The image agent path either renders a generated image or gracefully reports it is unavailable.
+  // It must NOT fall through to the NeMo/RAG path.
+  const generatedImage = page.locator('.chat-content img.chat-generated-image').last();
+  const systemNotice = page.locator('.chat-row').last();
+
+  await page.waitForFunction(() => !((document.getElementById('sendBtn') as HTMLButtonElement | null)?.disabled ?? true), {
+    timeout: 120_000
+  });
+
+  const imageCount = await generatedImage.count();
+  if (imageCount > 0) {
+    await expect(generatedImage).toBeVisible();
+  } else {
+    const noticeText = (await systemNotice.locator('.chat-content').innerText()).toLowerCase();
+    expect(noticeText).toMatch(/image agent|enable_image_agent|unavailable/);
+  }
 });
 
 test('grounded MAF action cites a knowledge-base source', async ({ page }) => {

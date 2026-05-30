@@ -140,6 +140,11 @@ builder.Services.AddSingleton<IActionExecutor>(sp => new GroundedActionAgent(
 builder.Services.AddSingleton<IA2ABridge, A2ABridge>();
 
 // --- Optional pitch image agent (MEAI IImageGenerator via Microsoft Foundry / GPT-Image-2); default off ---
+// Always register the agent as a resolvable singleton so the on-demand image endpoint can use it
+// regardless of whether the background hosted service runs. When disabled/unconfigured it reports
+// IsConfigured=false and returns no image.
+builder.Services.AddSingleton<PitchImageAgent>();
+
 if (PitchImageAgent.IsEnabled(configuration))
 {
     var imageEndpoint = configuration["FOUNDRY_IMAGE_ENDPOINT"];
@@ -177,7 +182,8 @@ if (PitchImageAgent.IsEnabled(configuration))
             "the pitch image agent will run as a no-op.");
     }
 
-    builder.Services.AddHostedService<PitchImageAgent>();
+    // Background pre-render uses the same singleton instance as the on-demand endpoint.
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<PitchImageAgent>());
 }
 
 var app = builder.Build();
@@ -277,6 +283,27 @@ app.MapGet("/api/pitch/hero-image", () =>
         : Results.NotFound(new { message = "No pitch image available. Enable ENABLE_IMAGE_AGENT to generate one." });
 })
 .WithName("GetPitchHeroImage")
+.WithOpenApi();
+
+// On-demand pitch image generation: returns the cached incident-hero image, generating it on demand
+// when needed. 503 when the image agent is disabled/unconfigured. Used by the Web UI sample prompt.
+app.MapPost("/api/pitch/generate-image", async (PitchImageAgent agent, HttpContext ctx) =>
+{
+    if (!agent.IsConfigured)
+    {
+        return Results.Json(
+            new { message = "Image agent is disabled. Set ENABLE_IMAGE_AGENT=true with FOUNDRY_IMAGE_ENDPOINT / FOUNDRY_IMAGE_API_KEY to enable it." },
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+
+    var bytes = await agent.EnsureImageAsync(ctx.RequestAborted);
+    return bytes is not null
+        ? Results.File(bytes, "image/png")
+        : Results.Json(
+            new { message = "Image generation failed. Check the MAF agent logs for details." },
+            statusCode: StatusCodes.Status502BadGateway);
+})
+.WithName("GeneratePitchHeroImage")
 .WithOpenApi();
 
 // --- Indexed knowledge documents (list + raw Markdown) for the Web UI document viewer ---

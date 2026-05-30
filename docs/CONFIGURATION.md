@@ -180,6 +180,9 @@ grounded-action path, so an image hiccup never affects the core RAG/A2A demo.
 - Generation runs **once in the background at startup** (never on a live request path) and caches the
   PNG to disk (idempotent), serving it at `GET /api/pitch/hero-image`. The Web UI displays it above the
   chat once it is ready. GPT-Image-2 can take several minutes, so it never blocks startup.
+- It can also be **triggered on demand** from the chat: the **"Generate an incident-response image"**
+  sample prompt (or any "generate/show … image" message) calls `POST /api/pitch/generate-image`, which
+  returns the cached image instantly or generates it on demand, and renders it inline in the chat.
 - Requires a GPT-Image-2 deployment on an Azure OpenAI / Foundry resource. Any failure degrades to a no-op.
 
 ```bash

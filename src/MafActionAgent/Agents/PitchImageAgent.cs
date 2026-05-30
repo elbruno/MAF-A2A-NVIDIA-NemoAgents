@@ -24,6 +24,7 @@ internal sealed class PitchImageAgent : IHostedService
     private readonly ILogger<PitchImageAgent> _logger;
     private readonly IImageGenerator? _imageGenerator;
     private readonly CancellationTokenSource _stoppingCts = new();
+    private readonly SemaphoreSlim _generationGate = new(1, 1);
 
     public PitchImageAgent(
         IConfiguration configuration,
@@ -41,6 +42,47 @@ internal sealed class PitchImageAgent : IHostedService
 
     public static bool IsEnabled(IConfiguration configuration) =>
         string.Equals(configuration["ENABLE_IMAGE_AGENT"], "true", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// True when the image agent is enabled and an image generator is configured, i.e. on-demand
+    /// generation can actually produce an image.
+    /// </summary>
+    public bool IsConfigured => IsEnabled(_configuration) && _imageGenerator is not null;
+
+    /// <summary>
+    /// Returns the incident-hero image bytes, generating and caching them on demand if needed.
+    /// Returns <c>null</c> when the agent is disabled, no generator is configured, or generation
+    /// fails. Concurrent callers share a single generation pass.
+    /// </summary>
+    public async Task<byte[]?> EnsureImageAsync(CancellationToken cancellationToken)
+    {
+        var cachePath = CachedImagePath;
+        if (File.Exists(cachePath))
+        {
+            return await File.ReadAllBytesAsync(cachePath, cancellationToken);
+        }
+
+        if (!IsEnabled(_configuration) || _imageGenerator is null)
+        {
+            return null;
+        }
+
+        await _generationGate.WaitAsync(cancellationToken);
+        try
+        {
+            // Another caller may have produced the image while we waited for the gate.
+            if (File.Exists(cachePath))
+            {
+                return await File.ReadAllBytesAsync(cachePath, cancellationToken);
+            }
+
+            return await GenerateAndCacheCoreAsync(cachePath, cancellationToken);
+        }
+        finally
+        {
+            _generationGate.Release();
+        }
+    }
 
     public Task StartAsync(CancellationToken cancellationToken)
     {
@@ -68,11 +110,11 @@ internal sealed class PitchImageAgent : IHostedService
         // GPT-Image-2 can take several minutes. Run generation in the background so it never blocks
         // application/Aspire startup (the cold-open image simply appears once it is ready; the Web UI
         // polls /api/pitch/hero-image). Fully fire-and-forget and fault-tolerant.
-        _ = Task.Run(() => GenerateAndCacheAsync(cachePath, _stoppingCts.Token), CancellationToken.None);
+        _ = Task.Run(() => EnsureImageAsync(_stoppingCts.Token), CancellationToken.None);
         return Task.CompletedTask;
     }
 
-    private async Task GenerateAndCacheAsync(string cachePath, CancellationToken cancellationToken)
+    private async Task<byte[]?> GenerateAndCacheCoreAsync(string cachePath, CancellationToken cancellationToken)
     {
         try
         {
@@ -87,11 +129,14 @@ internal sealed class PitchImageAgent : IHostedService
                 "Pitch image agent: incident-hero image generated in {Ms}ms and cached at {Path}.",
                 result.InferenceTimeMs,
                 cachePath);
+
+            return result.ImageBytes;
         }
         catch (Exception ex)
         {
             // Additive feature — never destabilize the core demo.
             _logger.LogWarning(ex, "Pitch image agent failed to generate the incident-hero image; continuing without it.");
+            return null;
         }
     }
 

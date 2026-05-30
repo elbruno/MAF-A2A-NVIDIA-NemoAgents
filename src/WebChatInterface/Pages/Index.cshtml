@@ -119,6 +119,9 @@
                     <select class="form-select" id="predefinedQuestionSelect">
                         <option value="">Select a test question...</option>
                         <option
+                            value="Generate an incident-response hero image">
+                            🖼️ Generate an incident-response image (MAF image agent · GPT-Image-2)</option>
+                        <option
                             value="Trigger an alert for the payments service error-rate spike and recommend the runbook remediation">
                             🧯 Grounded action: payments error-rate spike → runbook (MAF + RAG)</option>
                             <option
@@ -224,6 +227,16 @@
                                     messageInput.value = '';
                                     sendBtn.disabled = true;
                                     messageInput.disabled = true;
+
+                                    // Image-generation intent is handled by the MAF image agent (not the NeMo/RAG path).
+                                    if (isImageGenerationRequest(message)) {
+                                        await handleImageGenerationRequest();
+                                        sendBtn.disabled = false;
+                                        messageInput.disabled = false;
+                                        messageInput.focus();
+                                        return;
+                                    }
+
                                     const pendingIndicator = createPendingIndicator();
 
                                     try {
@@ -252,6 +265,73 @@
                                         messageInput.disabled = false;
                                         messageInput.focus();
                                     }
+                                }
+
+                                function isImageGenerationRequest(message) {
+                                    const normalized = message.toLowerCase();
+                                    return /\b(image|picture|illustration|visual)\b/.test(normalized) &&
+                                        /\b(generate|create|draw|render|make|show|produce)\b/.test(normalized);
+                                }
+
+                                async function handleImageGenerationRequest() {
+                                    const pending = createImagePendingIndicator();
+                                    try {
+                                        const response = await fetch('/api/pitch/generate-image', { method: 'POST' });
+                                        pending.dispose();
+
+                                        if (response.ok) {
+                                            const blob = await response.blob();
+                                            const url = URL.createObjectURL(blob);
+                                            const imgHtml = `<p>Here is the generated incident-response image:</p>` +
+                                                `<img src="${url}" alt="Generated incident-response image" class="chat-generated-image" />`;
+                                            addMessageToChat('agent', 'MAF Image Agent', 'Generated incident-response image', new Date(), imgHtml);
+
+                                            // Also surface it in the hero slot at the top of the page.
+                                            const heroImg = document.getElementById('pitchHeroImg');
+                                            const hero = document.getElementById('pitchHero');
+                                            if (heroImg && hero) {
+                                                heroImg.src = url;
+                                                hero.style.display = 'block';
+                                            }
+                                        } else {
+                                            let detail = 'The image agent is not available.';
+                                            try {
+                                                const data = await response.json();
+                                                if (data && data.message) {
+                                                    detail = data.message;
+                                                }
+                                            } catch (_) { /* non-JSON body */ }
+                                            addMessageToChat('system', 'System', detail, new Date());
+                                        }
+                                    } catch (error) {
+                                        pending.dispose();
+                                        addMessageToChat('system', 'System', 'Error generating image: ' + error.message, new Date());
+                                    }
+                                }
+
+                                function createImagePendingIndicator() {
+                                    const pendingMessage = addMessageToChat(
+                                        'system',
+                                        'System',
+                                        '',
+                                        new Date(),
+                                        `<div class="chat-loading-line"><span class="chat-loading-spinner" aria-hidden="true"></span><span class="chat-loading-text">Generating image with GPT-Image-2... 0s</span></div><div class="chat-loading-subtext">Image generation can take a few minutes on first run; a cached image returns instantly.</div>`
+                                    );
+                                    const loadingText = pendingMessage.querySelector('.chat-loading-text');
+                                    let elapsedSeconds = 0;
+                                    const intervalId = window.setInterval(() => {
+                                        elapsedSeconds += 1;
+                                        if (loadingText) {
+                                            loadingText.textContent = `Generating image with GPT-Image-2... ${elapsedSeconds}s`;
+                                        }
+                                    }, 1000);
+
+                                    return {
+                                        dispose() {
+                                            window.clearInterval(intervalId);
+                                            pendingMessage.remove();
+                                        }
+                                    };
                                 }
 
                                 function createPendingIndicator() {

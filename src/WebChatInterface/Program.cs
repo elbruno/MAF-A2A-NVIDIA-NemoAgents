@@ -224,6 +224,18 @@ app.MapGet("/api/pitch/hero-image", async (IAgentOrchestrator orchestrator, Canc
 })
 .ExcludeFromDescription();
 
+// On-demand pitch image generation (proxied from the MAF agent); 503 when the image agent is disabled
+app.MapPost("/api/pitch/generate-image", async (IAgentOrchestrator orchestrator, CancellationToken ct) =>
+{
+    var image = await orchestrator.GeneratePitchImageAsync(ct);
+    return image is not null
+        ? Results.File(image.Value.Bytes, image.Value.ContentType)
+        : Results.Json(
+            new { message = "Image generation is unavailable. Enable the image agent (ENABLE_IMAGE_AGENT=true) with valid GPT-Image-2 credentials." },
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+})
+.ExcludeFromDescription();
+
 app.MapRazorPages();
 app.MapControllers();
 
@@ -239,6 +251,7 @@ interface IAgentOrchestrator
     Task<List<KnowledgeDocInfo>> GetIndexedDocsAsync(CancellationToken cancellationToken = default);
     Task<KnowledgeDocContent?> GetKnowledgeDocAsync(string docId, CancellationToken cancellationToken = default);
     Task<(byte[] Bytes, string ContentType)?> GetPitchImageAsync(CancellationToken cancellationToken = default);
+    Task<(byte[] Bytes, string ContentType)?> GeneratePitchImageAsync(CancellationToken cancellationToken = default);
 }
 
 interface IChatService
@@ -257,6 +270,7 @@ interface IAgentClient
     Task<T> GetAsync<T>(string url, CancellationToken cancellationToken = default);
     Task<T> PostAsync<T>(string url, object payload, CancellationToken cancellationToken = default);
     Task<(byte[] Bytes, string ContentType)?> GetBytesAsync(string url, CancellationToken cancellationToken = default);
+    Task<(byte[] Bytes, string ContentType)?> PostForBytesAsync(string url, CancellationToken cancellationToken = default);
 }
 
 record AnalysisContextEntry(string SourcePrompt, string Summary, DateTime CapturedAtUtc);
@@ -337,6 +351,28 @@ class AgentClient : IAgentClient
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Error in GetBytesAsync for {Url}", url);
+            return null;
+        }
+    }
+
+    public async Task<(byte[] Bytes, string ContentType)?> PostForBytesAsync(string url, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var emptyContent = new StringContent(string.Empty);
+            var response = await _httpClient.PostAsync(url, emptyContent, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                return null;
+            }
+
+            var bytes = await response.Content.ReadAsByteArrayAsync(cancellationToken);
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "application/octet-stream";
+            return (bytes, contentType);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Error in PostForBytesAsync for {Url}", url);
             return null;
         }
     }
@@ -604,6 +640,12 @@ class AgentOrchestrator : IAgentOrchestrator
     {
         var mafEndpoint = NormalizeServiceBaseEndpoint(ResolveServiceEndpoint(_configuration["MAF_AGENT_ENDPOINT"], "http://127.0.0.1:5055"));
         return await _agentClient.GetBytesAsync($"{mafEndpoint}/api/pitch/hero-image", cancellationToken);
+    }
+
+    public async Task<(byte[] Bytes, string ContentType)?> GeneratePitchImageAsync(CancellationToken cancellationToken = default)
+    {
+        var mafEndpoint = NormalizeServiceBaseEndpoint(ResolveServiceEndpoint(_configuration["MAF_AGENT_ENDPOINT"], "http://127.0.0.1:5055"));
+        return await _agentClient.PostForBytesAsync($"{mafEndpoint}/api/pitch/generate-image", cancellationToken);
     }
 
     public async Task<string> SendNemoMessageAsync(string message, string? sessionId, CancellationToken cancellationToken = default)
