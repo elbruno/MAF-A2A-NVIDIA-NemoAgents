@@ -30,6 +30,7 @@ NEMO_PORT=8088
 ```
 
 **Supported Models:**
+
 - `meta/llama-2-7b-chat`
 - `meta/llama-2-70b-chat`
 - `mistralai/mistral-7b-instruct-v0.1`
@@ -103,6 +104,40 @@ When running with `aspire start`:
 # MAF_PORT=<dynamic>
 ```
 
+### Managing Secrets via the Aspire CLI
+
+The AppHost (`apphost.cs`) declares the LLM provider credentials as secret parameters:
+
+| AppHost parameter | Aspire secret key | Injected env var |
+|-------------------|-------------------|------------------|
+| `nvidia-api-key` | `Parameters:nvidia-api-key` | `NVIDIA_API_KEY` |
+| `azure-openai-endpoint` | `Parameters:azure-openai-endpoint` | `AZURE_OPENAI_ENDPOINT` |
+| `azure-openai-deployment-name` | `Parameters:azure-openai-deployment-name` | `AZURE_OPENAI_DEPLOYMENT_NAME` |
+| `azure-openai-api-key` | `Parameters:azure-openai-api-key` | `AZURE_OPENAI_API_KEY` |
+
+Set or update these from the repo root (where `apphost.cs` lives). `set` both creates and updates a key:
+
+```powershell
+# NVIDIA provider
+aspire secret set Parameters:nvidia-api-key "<your-nvidia-api-key>"
+
+# Azure OpenAI provider
+aspire secret set Parameters:azure-openai-endpoint "https://your-resource.openai.azure.com/"
+aspire secret set Parameters:azure-openai-deployment-name "<your-deployment-name>"
+aspire secret set Parameters:azure-openai-api-key "<your-azure-openai-api-key>"
+```
+
+Inspect, locate, and remove secrets:
+
+```powershell
+aspire secret list                          # list all secret keys
+aspire secret get Parameters:nvidia-api-key # read a single value
+aspire secret path                          # show the backing store location
+aspire secret delete Parameters:nvidia-api-key
+```
+
+> Type real secret values directly into the terminal; do not paste them into shared logs or chat. These values are stored in the AppHost user secrets and override the matching `.env` entries when running with `aspire start`.
+
 ## Advanced Configuration
 
 ### NeMo Workflow Config
@@ -127,6 +162,7 @@ NEMO_FAST_MODEL_NAME=meta/llama-3.2-3b-instruct
 Custom analysis functions are registered by the local package in `src/NemoDataAnalysisAgent/src/nemo_data_analysis_agent`.
 
 Key settings:
+
 - **Tools**: Data analysis tools (time-series, anomaly detection, metrics)
 - **Provider**: NVIDIA API or Azure OpenAI
 - **Model**: LLM model to use for analysis
@@ -143,6 +179,7 @@ llms:
     model_name: meta/llama-3.1-70b-instruct
     temperature: 0.3
 ```
+
 Then point `workflow.llm_name` at the LLM entry you want to use.
 
 ### Health Check Endpoints
@@ -170,7 +207,7 @@ curl http://127.0.0.1:5055/health
 | `AZURE_OPENAI_API_KEY` | Conditional | - | Azure OpenAI API key (if using Azure) |
 | `NEMO_HOST` | No | 127.0.0.1 | NeMo agent hostname |
 | `NEMO_PORT` | No | 8088 | NeMo agent port |
-| `NEMO_PUBLIC_BASE_URL` | No | http://127.0.0.1:8088 | Public NeMo base URL used by A2A discovery |
+| `NEMO_PUBLIC_BASE_URL` | No | <http://127.0.0.1:8088> | Public NeMo base URL used by A2A discovery |
 | `NEMO_WORKFLOW_PROFILE` | No | fast | Select NeMo workflow profile (`fast` or `standard`) |
 | `NEMO_FAST_MODEL_NAME` | No | meta/llama-3.2-3b-instruct | Model used by fast NeMo profile |
 | `MAF_HOST` | No | 127.0.0.1 | MAF agent hostname |
@@ -182,7 +219,7 @@ curl http://127.0.0.1:5055/health
 | `CHAT_ANALYSIS_CONTEXT_TTL_MINUTES` | No | 30 | TTL for storing prior NeMo analysis per chat session |
 | `CHAT_ANALYSIS_CONTEXT_MAX_LENGTH` | No | 1600 | Max stored characters for NeMo summary forwarded to MAF |
 | `ENABLE_OTEL_TRACING` | No | true | Enable OpenTelemetry tracing |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | No | http://localhost:4317 | OTEL collector endpoint (manual runs); Aspire injects dynamic value at runtime |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | No | <http://localhost:4317> | OTEL collector endpoint (manual runs); Aspire injects dynamic value at runtime |
 | `NEMO_LOG_LEVEL` | No | Information | NeMo logging level |
 | `WEB_UI_LOG_LEVEL` | No | Information | Web UI logging level |
 
@@ -217,6 +254,7 @@ Use the helper scripts from the repository root:
 ```
 
 Notes:
+
 - `check-port-conflicts.ps1` checks NeMo/MAF/Web default ports (`8088`, `5055`, `5000`).
 - `stop-port-conflicts.ps1` stops only the detected blocking listeners by PID.
 
