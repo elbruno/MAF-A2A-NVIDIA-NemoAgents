@@ -174,18 +174,41 @@ An **optional, additive** MAF agent can pre-render a single "incident hero" imag
 cold-open. It is **disabled by default** (`ENABLE_IMAGE_AGENT=false`) and fully isolated from the
 grounded-action path, so an image hiccup never affects the core RAG/A2A demo.
 
-- Implemented with **ElBruno.Text2Image** (`Microsoft.Extensions.AI.IImageGenerator`) — the same
+- Implemented with **ElBruno.Text2Image.Foundry** (`Microsoft.Extensions.AI.IImageGenerator`) — the same
   MEAI building-block story as `IChatClient` and `IEmbeddingGenerator`.
-- Runs **once at startup** (never on a live request path), caches the PNG to disk (idempotent), and
-  serves it at `GET /api/pitch/hero-image`.
-- Requires a Microsoft Foundry image deployment (e.g. FLUX.2 Flex). Any failure degrades to a no-op.
+- Uses **GPT-Image-2 (Azure OpenAI)** via `GptImage2Generator`.
+- Generation runs **once in the background at startup** (never on a live request path) and caches the
+  PNG to disk (idempotent), serving it at `GET /api/pitch/hero-image`. The Web UI displays it above the
+  chat once it is ready. GPT-Image-2 can take several minutes, so it never blocks startup.
+- Requires a GPT-Image-2 deployment on an Azure OpenAI / Foundry resource. Any failure degrades to a no-op.
 
 ```bash
 ENABLE_IMAGE_AGENT=false
 FOUNDRY_IMAGE_ENDPOINT=https://your-resource.services.ai.azure.com
-FOUNDRY_IMAGE_API_KEY=your-foundry-image-api-key
-FOUNDRY_IMAGE_MODEL_ID=FLUX.2-flex
+FOUNDRY_IMAGE_API_KEY=your-gpt-image-api-key
+FOUNDRY_IMAGE_DEPLOYMENT=gpt-image-2
+FOUNDRY_IMAGE_MODEL_NAME=GPT-Image-2
+# FOUNDRY_IMAGE_TIMEOUT_SECONDS=300
 ```
+
+> When running under Aspire, the AppHost prompts for the image secrets
+> (`gpt-image-endpoint`, `gpt-image-api-key`, `gpt-image-deployment`, `enable-image-agent`) and wires
+> them to the MAF agent automatically.
+
+### Indexed knowledge documents viewer
+
+The MAF agent exposes its indexed runbook/policy knowledge base for in-app browsing:
+
+- `GET /api/knowledge/docs` — lists every indexed document (`docId`, `title`, `category`).
+- `GET /api/knowledge/doc/{docId}` — returns the raw Markdown for one document.
+
+The Web UI proxies these and adds two viewer pages:
+
+- `GET /knowledge` — a listing of all indexed documents (linked from the **Configuration** card).
+- `GET /knowledge/{docId}` — a rendered document viewer.
+
+Grounded citation chips under each MAF answer link directly to `/knowledge/{docId}`, so you can open the
+exact runbook/policy that grounded a response.
 
 ### NeMo Workflow Config
 
@@ -263,10 +286,11 @@ curl http://127.0.0.1:5055/health
 | `ENABLE_MCP_RETRIEVAL` | No | false | When `true`, the grounded MAF agent also loads tools from an MCP server. Failures degrade gracefully to local RAG. |
 | `MCP_SERVER_ENDPOINT` | No | <https://learn.microsoft.com/api/mcp> | MCP server endpoint used when `ENABLE_MCP_RETRIEVAL=true` |
 | `ENABLE_IMAGE_AGENT` | No | false | Enables the optional pitch image agent that pre-renders an incident-hero image at startup (cached) served at `/api/pitch/hero-image`. |
-| `FOUNDRY_IMAGE_ENDPOINT` | Conditional | - | Microsoft Foundry image endpoint (required when `ENABLE_IMAGE_AGENT=true`) |
-| `FOUNDRY_IMAGE_API_KEY` | Conditional | - | Microsoft Foundry image API key (required when `ENABLE_IMAGE_AGENT=true`) |
-| `FOUNDRY_IMAGE_MODEL_NAME` | No | FLUX.2 Flex | Display name of the Foundry image model |
-| `FOUNDRY_IMAGE_MODEL_ID` | No | FLUX.2-flex | Deployment/model id of the Foundry image model |
+| `FOUNDRY_IMAGE_ENDPOINT` | Conditional | - | GPT-Image-2 (Azure OpenAI) endpoint (required when `ENABLE_IMAGE_AGENT=true`) |
+| `FOUNDRY_IMAGE_API_KEY` | Conditional | - | GPT-Image-2 (Azure OpenAI) API key (required when `ENABLE_IMAGE_AGENT=true`) |
+| `FOUNDRY_IMAGE_DEPLOYMENT` | No | gpt-image-2 | Deployment name of the GPT-Image-2 model |
+| `FOUNDRY_IMAGE_MODEL_NAME` | No | GPT-Image-2 | Display name of the image model |
+| `FOUNDRY_IMAGE_TIMEOUT_SECONDS` | No | 300 | Request timeout (seconds) for image generation |
 | `WEB_UI_HOST` | No | 127.0.0.1 | Web UI hostname |
 | `WEB_UI_PORT` | No | 5000 | Web UI port |
 | `AGENT_HTTP_TIMEOUT_SECONDS` | No | 120 | HTTP client timeout used by Web UI when calling NeMo/MAF |

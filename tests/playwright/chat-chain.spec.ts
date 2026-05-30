@@ -97,5 +97,46 @@ test('grounded MAF action cites a knowledge-base source', async ({ page }) => {
   await expect(sources).toBeVisible();
   const chip = sources.locator('.source-chip').first();
   await expect(chip).toBeVisible();
-  expect((await chip.getAttribute('data-doc-id')) ?? '').toMatch(KNOWLEDGE_DOC_ID_PATTERN);
+  const docId = (await chip.getAttribute('data-doc-id')) ?? '';
+  expect(docId).toMatch(KNOWLEDGE_DOC_ID_PATTERN);
+
+  // The chip must be a link that opens the related indexed document in the viewer.
+  const href = (await chip.getAttribute('href')) ?? '';
+  expect(href).toContain(`/knowledge/${encodeURIComponent(docId)}`);
+});
+
+test('citation chip opens the related indexed document', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('#messageInput')).toBeVisible();
+
+  const action = await sendPromptUntilAgent(page, GROUNDED_ACTION_PROMPT, 'maf');
+  expect(action.actor.toLowerCase()).toContain('maf');
+
+  const chip = page.locator('[data-testid="grounded-sources"]').last().locator('.source-chip').first();
+  await expect(chip).toBeVisible();
+  const docId = (await chip.getAttribute('data-doc-id')) ?? '';
+
+  // Navigate directly to the proxied document viewer page and verify it renders.
+  const response = await page.goto(`/knowledge/${encodeURIComponent(docId)}`);
+  expect(response?.status()).toBe(200);
+  await expect(page.locator('h1')).toContainText(docId);
+  await expect(page.locator('.content')).toBeVisible();
+});
+
+test('indexed documents page lists the knowledge base', async ({ page }) => {
+  const response = await page.goto('/knowledge');
+  expect(response?.status()).toBe(200);
+
+  // At least one document card linking to a viewer page must be present.
+  const docCards = page.locator('a.doc-card');
+  await expect(docCards.first()).toBeVisible();
+  const firstHref = (await docCards.first().getAttribute('href')) ?? '';
+  expect(firstHref).toMatch(/\/knowledge\/(RB|ASP|EM|RT)-\d{3}/);
+});
+
+test('Configuration card links to the indexed documents page', async ({ page }) => {
+  await page.goto('/');
+  const link = page.locator('#indexedDocsLink');
+  await expect(link).toBeVisible();
+  expect((await link.getAttribute('href')) ?? '').toBe('/knowledge');
 });

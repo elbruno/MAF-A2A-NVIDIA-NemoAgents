@@ -141,9 +141,10 @@ graph TB
 
 ✅ **Grounded Agent (RAG)** - Real Microsoft Agent Framework agent (`Microsoft.Agents.AI` / `Microsoft.Extensions.AI`) that grounds every action in a retrieved runbook/policy knowledge base instead of canned responses  
 ✅ **Local Embeddings** - Knowledge indexing + semantic search via **ElBruno.LocalEmbeddings** (local ONNX MiniLM, no cloud embedding deployment)  
-✅ **Cited Sources** - Every `ActionResult` returns a structured `Sources` array (doc id, title, snippet, score) rendered as citation chips in the UI  
+✅ **Cited Sources** - Every `ActionResult` returns a structured `Sources` array (doc id, title, snippet, score) rendered as **clickable citation chips** that open the exact grounding document in the UI  
+✅ **Indexed Documents Viewer** - Browse the full runbook/policy knowledge base in-app via `/knowledge` (linked from the Configuration card) and `/knowledge/{docId}`  
 ✅ **Optional MCP Retrieval** - Loads additional tools from an MCP server behind `ENABLE_MCP_RETRIEVAL` (default off), with graceful fallback to local RAG  
-✅ **Optional Pitch Image Agent** - Pre-renders an incident-hero cold-open image via **ElBruno.Text2Image** (`IImageGenerator`) behind `ENABLE_IMAGE_AGENT` (default off), served at `/api/pitch/hero-image`  
+✅ **Optional Pitch Image Agent** - Background-renders an incident-hero cold-open image via **ElBruno.Text2Image.Foundry** (`IImageGenerator`, **GPT-Image-2 / Azure OpenAI**) behind `ENABLE_IMAGE_AGENT` (default off), served at `/api/pitch/hero-image` and displayed in the chat UI  
 ✅ **Alert Triggering** - Multi-level alerts (Critical/High/Medium/Low)  
 ✅ **Report Generation** - Async report creation  
 ✅ **A2A Integration** - Agent discovery + JSON-RPC communication  
