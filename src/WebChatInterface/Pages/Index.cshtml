@@ -108,99 +108,101 @@
             <div class="zava-hero">
                 <span class="zava-hero-badge">Incident Support Assistant</span>
                 <h1>How can we help with your incident?</h1>
-                <p class="lead">Chat with Zava's AI support agents — real-time data analysis and grounded, runbook-backed remediation.</p>
-            </div>
-
-            <!-- Chat Messages Area -->
-            <div class="card mb-4 chat-container" id="chatScroll">
-                <div class="card-body" id="chatMessages">
-                    <p class="text-muted text-center chat-placeholder">Chat history will appear here...</p>
+                <p class="lead">Chat with Zava's AI support agents — real-time data analysis and grounded,
+                    runbook-backed remediation.</p>
                 </div>
-            </div>
 
-            <!-- Chat Input Area -->
-            <div class="input-group mb-3">
-                <input type="text" class="form-control" id="messageInput" placeholder="Type your message..." />
-                <button class="btn btn-primary" type="button" id="sendBtn">Send</button>
-            </div>
+                <!-- Chat Messages Area -->
+                <div class="card mb-4 chat-container" id="chatScroll">
+                    <div class="card-body" id="chatMessages">
+                        <p class="text-muted text-center chat-placeholder">Chat history will appear here...</p>
+                    </div>
+                </div>
 
-            <!-- Predefined Questions -->
-            <div class="mb-4">
-                <label for="predefinedQuestionSelect" class="form-label"><strong>Quick Test Questions:</strong></label>
-                <div class="input-group">
-                    <select class="form-select" id="predefinedQuestionSelect">
-                        <option value="">Select a test question...</option>
-                        <optgroup label="🔗 Connected incident scenario — Payments error-rate spike">
-                            <option
-                                value="Generate an image that visualizes the payments service incident: an error-rate line chart climbing from a 0.4% baseline to a 7.2% peak and crossing the 5% alert threshold right after the 14:32 deployment, with a red High-severity alert badge and a calm on-call engineer opening runbook RB-014. Flat vector style, blue and teal palette with a red alert accent, high contrast, professional dashboard look.">
-                                1️⃣ Visualize the incident data (MAF image agent · GPT-Image-2)</option>
+                <!-- Chat Input Area -->
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="messageInput" placeholder="Type your message..." />
+                    <button class="btn btn-primary" type="button" id="sendBtn">Send</button>
+                </div>
+
+                <!-- Predefined Questions -->
+                <div class="mb-4">
+                    <label for="predefinedQuestionSelect" class="form-label"><strong>Quick Test Questions:</strong></label>
+                    <div class="input-group">
+                        <select class="form-select" id="predefinedQuestionSelect">
+                            <option value="">Select a test question...</option>
+                            <optgroup label="🔗 Connected incident scenario — Payments error-rate spike">
                                 <option
-                                    value="Analyze this payments.error_rate time series and tell me the trend, the peak value, and whether it breaches the 5% threshold: 0.4%, 0.5%, 0.4%, 2.1%, 4.3%, 6.0%, 6.8%, 7.2% sampled each minute starting at 14:30, right after the 14:32 deployment to the payments cluster.">
-                                    2️⃣ Analyze the incident data (NeMo data-analysis agent)</option>
+                                    value="Generate an image that visualizes the payments service incident: an error-rate line chart climbing from a 0.4% baseline to a 7.2% peak and crossing the 5% alert threshold right after the 14:32 deployment, with a red High-severity alert badge and a calm on-call engineer opening runbook RB-014. Flat vector style, blue and teal palette with a red alert accent, high contrast, professional dashboard look.">
+                                    1️⃣ Visualize the incident data (MAF image agent · GPT-Image-2)</option>
                                     <option
+                                        value="Analyze this payments.error_rate time series and tell me the trend, the peak value, and whether it breaches the 5% threshold: 0.4%, 0.5%, 0.4%, 2.1%, 4.3%, 6.0%, 6.8%, 7.2% sampled each minute starting at 14:30, right after the 14:32 deployment to the payments cluster.">
+                                        2️⃣ Analyze the incident data (NeMo data-analysis agent)</option>
+                                        <option
                                             value="Search the knowledge base for the runbook and alert-severity policy that cover the payments.error_rate spike to 7.2% sustained above the 5% threshold after the 14:32 deployment. Then trigger the appropriate alert and return the grounded remediation: cite the exact runbook ID, the severity threshold, and the step-by-step rollback remediation from the runbook.">
                                             3️⃣ Act on the incident: RAG search + alert + runbook remediation (MAF + RAG)</option>
-                                        <option
-                                            value="Generate an incident report for the payments error-rate spike (0.4% baseline rising to a 7.2% peak after the 14:32 deployment) using the runbook and alert-severity policy.">
-                                            📝 Bonus: grounded incident report (MAF + RAG)</option>
-                                        </optgroup>
-                                        <optgroup label="Other quick tests">
-                                            <option value="Analyze quarterly revenue trends">📊 Analyze quarterly revenue trends (NeMo)
-                                            </option>
-                                            <option value="Detect anomalies in system performance">⚠️ Detect anomalies in system
-                                                performance
-                                                (NeMo)</option>
-                                                <option value="Generate monthly metrics report">📈 Generate monthly metrics report (MAF)
+                                            <option
+                                                value="Generate an incident report for the payments error-rate spike (0.4% baseline rising to a 7.2% peak after the 14:32 deployment) using the runbook and alert-severity policy.">
+                                                📝 Bonus: grounded incident report (MAF + RAG)</option>
+                                            </optgroup>
+                                            <optgroup label="Other quick tests">
+                                                <option value="Analyze quarterly revenue trends">📊 Analyze quarterly revenue trends (NeMo)
                                                 </option>
-                                                <option value="Trigger alert for high CPU usage">🚨 Trigger alert for high CPU usage (MAF)
-                                                </option>
-                                                <option value="Compare year-over-year growth">📉 Compare year-over-year growth (NeMo)
-                                                </option>
-                                                <option value="What insights can you provide about recent data trends?">💡 What insights can
-                                                    you
-                                                    provide about recent data trends? (NeMo)</option>
-                                                    <option value="Send a report to the analytics team">📧 Send a report to the analytics team
-                                                        (MAF)
+                                                <option value="Detect anomalies in system performance">⚠️ Detect anomalies in system
+                                                    performance
+                                                    (NeMo)</option>
+                                                    <option value="Generate monthly metrics report">📈 Generate monthly metrics report (MAF)
                                                     </option>
-                                                    <option value="Check agent availability and health status">🏥 Check agent availability and
-                                                        health status (NeMo)</option>
-                                                        <option
-                                                            value="Analyze quarterly revenue trends and then trigger alert for high CPU usage based on the analysis findings">
-                                                            🔗 Analyze quarterly revenue trends and then trigger alert for high CPU usage based on
-                                                            the
-                                                            analysis findings (NeMo + MAF)</option>
-                                                        </optgroup>
-                                                    </select>
-                                                    <button type="button" class="btn btn-outline-secondary" id="usePredefinedQuestionBtn">Use</button>
-                                                </div>
-                                            </div>
-
-                                            <!-- Service Status -->
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <div class="card">
-                                                        <div class="card-header d-flex justify-content-between align-items-center">
-                                                            <span>Service Status</span>
-                                                            <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                                    id="refreshStatusBtn">Refresh</button>
-                                                        </div>
-                                                        <div class="card-body">
-                                                            <small id="serviceStatus" class="text-muted">Loading...</small>
-                                                        </div>
+                                                    <option value="Trigger alert for high CPU usage">🚨 Trigger alert for high CPU usage (MAF)
+                                                    </option>
+                                                    <option value="Compare year-over-year growth">📉 Compare year-over-year growth (NeMo)
+                                                    </option>
+                                                    <option value="What insights can you provide about recent data trends?">💡 What insights can
+                                                        you
+                                                        provide about recent data trends? (NeMo)</option>
+                                                        <option value="Send a report to the analytics team">📧 Send a report to the analytics team
+                                                            (MAF)
+                                                        </option>
+                                                        <option value="Check agent availability and health status">🏥 Check agent availability and
+                                                            health status (NeMo)</option>
+                                                            <option
+                                                                value="Analyze quarterly revenue trends and then trigger alert for high CPU usage based on the analysis findings">
+                                                                🔗 Analyze quarterly revenue trends and then trigger alert for high CPU usage based on
+                                                                the
+                                                                analysis findings (NeMo + MAF)</option>
+                                                            </optgroup>
+                                                        </select>
+                                                        <button type="button" class="btn btn-outline-secondary" id="usePredefinedQuestionBtn">Use</button>
                                                     </div>
                                                 </div>
-                                                <div class="col-md-6">
-                                                    <div class="card">
-                                                        <div class="card-header">Configuration</div>
-                                                        <div class="card-body">
-                                                            <small id="configStatus" class="text-muted">
-                                                                NeMo URL: <span id="nemoEndpoint">-</span><br />
-                                                                MAF URL: <span id="mafEndpoint">-</span>
-                                                            </small>
-                                                            <div class="mt-2">
-                                                                <a href="/knowledge" target="_blank" rel="noopener" id="indexedDocsLink" class="small">
-                                                                    📚 View indexed documents
-                                                                </a>
+
+                                                <!-- Service Status -->
+                                                <div class="row">
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header d-flex justify-content-between align-items-center">
+                                                                <span>Service Status</span>
+                                                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                                        id="refreshStatusBtn">Refresh</button>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                <small id="serviceStatus" class="text-muted">Loading...</small>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <div class="card">
+                                                            <div class="card-header">Configuration</div>
+                                                            <div class="card-body">
+                                                                <small id="configStatus" class="text-muted">
+                                                                    NeMo URL: <span id="nemoEndpoint">-</span><br />
+                                                                    MAF URL: <span id="mafEndpoint">-</span>
+                                                                </small>
+                                                                <div class="mt-2">
+                                                                    <a href="/knowledge" target="_blank" rel="noopener" id="indexedDocsLink" class="small">
+                                                                        📚 View indexed documents
+                                                                    </a>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -208,471 +210,470 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                @section Scripts {
-                                    <script>
-                                        const chatScrollDiv = document.getElementById('chatScroll');
-                                        const chatMessagesDiv = document.getElementById('chatMessages');
-                                        const messageInput = document.getElementById('messageInput');
-                                        const sendBtn = document.getElementById('sendBtn');
-                                        const refreshStatusBtn = document.getElementById('refreshStatusBtn');
-                                        const predefinedQuestionSelect = document.getElementById('predefinedQuestionSelect');
-                                        const usePredefinedQuestionBtn = document.getElementById('usePredefinedQuestionBtn');
-                                        const sessionStorageKey = 'mafNemoChatSessionId';
-                                        const chainHintStorageKey = 'mafNemoChainHintShown';
+                                    @section Scripts {
+                                        <script>
+                                            const chatScrollDiv = document.getElementById('chatScroll');
+                                            const chatMessagesDiv = document.getElementById('chatMessages');
+                                            const messageInput = document.getElementById('messageInput');
+                                            const sendBtn = document.getElementById('sendBtn');
+                                            const refreshStatusBtn = document.getElementById('refreshStatusBtn');
+                                            const predefinedQuestionSelect = document.getElementById('predefinedQuestionSelect');
+                                            const usePredefinedQuestionBtn = document.getElementById('usePredefinedQuestionBtn');
+                                            const sessionStorageKey = 'mafNemoChatSessionId';
+                                            const chainHintStorageKey = 'mafNemoChainHintShown';
 
-                                        // Handle send button click
-                                        sendBtn.addEventListener('click', () => sendMessage());
-                                        refreshStatusBtn.addEventListener('click', () => loadServiceStatus());
-                                        messageInput.addEventListener('keypress', (e) => {
-                                            if (e.key === 'Enter') sendMessage();
-                                        });
+                                            // Handle send button click
+                                            sendBtn.addEventListener('click', () => sendMessage());
+                                            refreshStatusBtn.addEventListener('click', () => loadServiceStatus());
+                                            messageInput.addEventListener('keypress', (e) => {
+                                                if (e.key === 'Enter') sendMessage();
+                                            });
 
-                                        function applyPredefinedQuestion() {
-                                            const question = predefinedQuestionSelect.value;
-                                            if (!question) {
-                                                return;
-                                            }
-
-                                            messageInput.value = question;
-                                            messageInput.focus();
-                                        }
-
-                                        usePredefinedQuestionBtn.addEventListener('click', applyPredefinedQuestion);
-                                        predefinedQuestionSelect.addEventListener('change', applyPredefinedQuestion);
-
-                                        async function sendMessage() {
-                                            const message = messageInput.value.trim();
-                                            if (!message) return;
-
-                                            // Add user message to chat
-                                            addMessageToChat('user', 'You', message, new Date());
-                                            messageInput.value = '';
-                                            sendBtn.disabled = true;
-                                            messageInput.disabled = true;
-
-                                            // Image-generation intent is handled by the MAF image agent (not the NeMo/RAG path).
-                                            if (isImageGenerationRequest(message)) {
-                                                await handleImageGenerationRequest(message);
-                                                sendBtn.disabled = false;
-                                                messageInput.disabled = false;
-                                                messageInput.focus();
-                                                return;
-                                            }
-
-                                            const pendingIndicator = createPendingIndicator();
-
-                                            try {
-                                                // Send to backend
-                                                const response = await fetch('/api/chat', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ message, sessionId: getSessionId() })
-                                                });
-
-                                                if (response.ok) {
-                                                    const data = await response.json();
-                                                    const responder = data.respondedBy || 'Agent';
-                                                    pendingIndicator.dispose();
-                                                    addMessageToChat('agent', responder, data.content || 'No response', data.responseTime, data.contentHtml);
-                                                    maybeShowChainHint(responder);
-                                                } else {
-                                                    pendingIndicator.dispose();
-                                                    addMessageToChat('system', 'System', 'Error: ' + response.statusText, new Date());
+                                            function applyPredefinedQuestion() {
+                                                const question = predefinedQuestionSelect.value;
+                                                if (!question) {
+                                                    return;
                                                 }
-                                            } catch (error) {
-                                                pendingIndicator.dispose();
-                                                addMessageToChat('system', 'System', 'Error: ' + error.message, new Date());
-                                            } finally {
-                                                sendBtn.disabled = false;
-                                                messageInput.disabled = false;
+
+                                                messageInput.value = question;
                                                 messageInput.focus();
                                             }
-                                        }
 
-                                        function isImageGenerationRequest(message) {
-                                            const normalized = message.toLowerCase();
-                                            return /\b(image|picture|illustration|visual)\b/.test(normalized) &&
-                                                /\b(generate|create|draw|render|make|show|produce)\b/.test(normalized);
-                                        }
+                                            usePredefinedQuestionBtn.addEventListener('click', applyPredefinedQuestion);
+                                            predefinedQuestionSelect.addEventListener('change', applyPredefinedQuestion);
 
-                                        async function handleImageGenerationRequest(prompt) {
-                                            const pending = createImagePendingIndicator();
-                                            try {
-                                                const response = await fetch('/api/pitch/generate-image', {
-                                                    method: 'POST',
-                                                    headers: { 'Content-Type': 'application/json' },
-                                                    body: JSON.stringify({ prompt })
-                                                });
-                                                pending.dispose();
+                                            async function sendMessage() {
+                                                const message = messageInput.value.trim();
+                                                if (!message) return;
 
-                                                if (response.ok) {
-                                                    const blob = await response.blob();
-                                                    const url = URL.createObjectURL(blob);
-                                                    const safePrompt = prompt
-                                                        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-                                                    const imgHtml = `<p>Here is the image generated from your prompt:</p>` +
-                                                        `<p class="chat-image-prompt"><em>&ldquo;${safePrompt}&rdquo;</em></p>` +
-                                                        `<img src="${url}" alt="Image generated from prompt: ${safePrompt}" class="chat-generated-image" />`;
-                                                    addMessageToChat('agent', 'MAF Image Agent', 'Generated image from your prompt', new Date(), imgHtml);
-                                                } else {
-                                                    let detail = 'The image agent is not available.';
-                                                    try {
+                                                // Add user message to chat
+                                                addMessageToChat('user', 'You', message, new Date());
+                                                messageInput.value = '';
+                                                sendBtn.disabled = true;
+                                                messageInput.disabled = true;
+
+                                                // Image-generation intent is handled by the MAF image agent (not the NeMo/RAG path).
+                                                if (isImageGenerationRequest(message)) {
+                                                    await handleImageGenerationRequest(message);
+                                                    sendBtn.disabled = false;
+                                                    messageInput.disabled = false;
+                                                    messageInput.focus();
+                                                    return;
+                                                }
+
+                                                const pendingIndicator = createPendingIndicator();
+
+                                                try {
+                                                    // Send to backend
+                                                    const response = await fetch('/api/chat', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ message, sessionId: getSessionId() })
+                                                    });
+
+                                                    if (response.ok) {
                                                         const data = await response.json();
-                                                        if (data && data.message) {
-                                                            detail = data.message;
-                                                        }
-                                                    } catch (_) { /* non-JSON body */ }
-                                                    addMessageToChat('system', 'System', detail, new Date());
+                                                        const responder = data.respondedBy || 'Agent';
+                                                        pendingIndicator.dispose();
+                                                        addMessageToChat('agent', responder, data.content || 'No response', data.responseTime, data.contentHtml);
+                                                        maybeShowChainHint(responder);
+                                                    } else {
+                                                        pendingIndicator.dispose();
+                                                        addMessageToChat('system', 'System', 'Error: ' + response.statusText, new Date());
+                                                    }
+                                                } catch (error) {
+                                                    pendingIndicator.dispose();
+                                                    addMessageToChat('system', 'System', 'Error: ' + error.message, new Date());
+                                                } finally {
+                                                    sendBtn.disabled = false;
+                                                    messageInput.disabled = false;
+                                                    messageInput.focus();
                                                 }
-                                            } catch (error) {
-                                                pending.dispose();
-                                                addMessageToChat('system', 'System', 'Error generating image: ' + error.message, new Date());
                                             }
-                                        }
 
-                                        function createImagePendingIndicator() {
-                                            const pendingMessage = addMessageToChat(
-                                                'system',
-                                                'System',
-                                                '',
-                                                new Date(),
-                                                `<div class="chat-loading-line"><span class="chat-loading-spinner" aria-hidden="true"></span><span class="chat-loading-text">Generating image with GPT-Image-2... 0s</span></div><div class="chat-loading-subtext">Image generation can take a few minutes on first run; a cached image returns instantly.</div>`
-                                            );
-                                            const loadingText = pendingMessage.querySelector('.chat-loading-text');
-                                            let elapsedSeconds = 0;
-                                            const intervalId = window.setInterval(() => {
-                                                elapsedSeconds += 1;
-                                                if (loadingText) {
-                                                    loadingText.textContent = `Generating image with GPT-Image-2... ${elapsedSeconds}s`;
+                                            function isImageGenerationRequest(message) {
+                                                const normalized = message.toLowerCase();
+                                                return /\b(image|picture|illustration|visual)\b/.test(normalized) &&
+                                                    /\b(generate|create|draw|render|make|show|produce)\b/.test(normalized);
+                                            }
+
+                                            async function handleImageGenerationRequest(prompt) {
+                                                const pending = createImagePendingIndicator();
+                                                try {
+                                                    const response = await fetch('/api/pitch/generate-image', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({ prompt })
+                                                    });
+                                                    pending.dispose();
+
+                                                    if (response.ok) {
+                                                        const blob = await response.blob();
+                                                        const url = URL.createObjectURL(blob);
+                                                        const safePrompt = prompt
+                                                            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                                                        const imgHtml = `<p>Here is the image generated from your prompt:</p>` +
+                                                            `<p class="chat-image-prompt"><em>&ldquo;${safePrompt}&rdquo;</em></p>` +
+                                                            `<img src="${url}" alt="Image generated from prompt: ${safePrompt}" class="chat-generated-image" />`;
+                                                        addMessageToChat('agent', 'MAF Image Agent', 'Generated image from your prompt', new Date(), imgHtml);
+                                                    } else {
+                                                        let detail = 'The image agent is not available.';
+                                                        try {
+                                                            const data = await response.json();
+                                                            if (data && data.message) {
+                                                                detail = data.message;
+                                                            }
+                                                        } catch (_) { /* non-JSON body */ }
+                                                        addMessageToChat('system', 'System', detail, new Date());
+                                                    }
+                                                } catch (error) {
+                                                    pending.dispose();
+                                                    addMessageToChat('system', 'System', 'Error generating image: ' + error.message, new Date());
                                                 }
-                                            }, 1000);
+                                            }
 
-                                            return {
-                                                dispose() {
-                                                    window.clearInterval(intervalId);
-                                                    pendingMessage.remove();
+                                            function createImagePendingIndicator() {
+                                                const pendingMessage = addMessageToChat(
+                                                    'system',
+                                                    'System',
+                                                    '',
+                                                    new Date(),
+                                                    `<div class="chat-loading-line"><span class="chat-loading-spinner" aria-hidden="true"></span><span class="chat-loading-text">Generating image with GPT-Image-2... 0s</span></div><div class="chat-loading-subtext">Image generation can take a few minutes on first run; a cached image returns instantly.</div>`
+                                                );
+                                                const loadingText = pendingMessage.querySelector('.chat-loading-text');
+                                                let elapsedSeconds = 0;
+                                                const intervalId = window.setInterval(() => {
+                                                    elapsedSeconds += 1;
+                                                    if (loadingText) {
+                                                        loadingText.textContent = `Generating image with GPT-Image-2... ${elapsedSeconds}s`;
+                                                    }
+                                                }, 1000);
+
+                                                return {
+                                                    dispose() {
+                                                        window.clearInterval(intervalId);
+                                                        pendingMessage.remove();
+                                                    }
+                                                };
+                                            }
+
+                                            function createPendingIndicator() {
+                                                const pendingMessage = addMessageToChat(
+                                                    'system',
+                                                    'System',
+                                                    '',
+                                                    new Date(),
+                                                    `<div class="chat-loading-line"><span class="chat-loading-spinner" aria-hidden="true"></span><span class="chat-loading-text">Analyzing your request with NeMo... 0s</span></div><div class="chat-loading-subtext">First request may take longer while the model and tools warm up.</div>`
+                                                );
+                                                const loadingText = pendingMessage.querySelector('.chat-loading-text');
+                                                let elapsedSeconds = 0;
+                                                const intervalId = window.setInterval(() => {
+                                                    elapsedSeconds += 1;
+                                                    if (loadingText) {
+                                                        loadingText.textContent = `Analyzing your request with NeMo... ${elapsedSeconds}s`;
+                                                    }
+                                                }, 1000);
+
+                                                return {
+                                                    dispose() {
+                                                        window.clearInterval(intervalId);
+                                                        pendingMessage.remove();
+                                                    }
+                                                };
+                                            }
+
+                                            function addMessageToChat(role, actor, content, timestamp, contentHtml = '') {
+                                                const placeholder = chatMessagesDiv.querySelector('.chat-placeholder');
+                                                if (placeholder) {
+                                                    placeholder.remove();
                                                 }
-                                            };
-                                        }
 
-                                        function createPendingIndicator() {
-                                            const pendingMessage = addMessageToChat(
-                                                'system',
-                                                'System',
-                                                '',
-                                                new Date(),
-                                                `<div class="chat-loading-line"><span class="chat-loading-spinner" aria-hidden="true"></span><span class="chat-loading-text">Analyzing your request with NeMo... 0s</span></div><div class="chat-loading-subtext">First request may take longer while the model and tools warm up.</div>`
-                                            );
-                                            const loadingText = pendingMessage.querySelector('.chat-loading-text');
-                                            let elapsedSeconds = 0;
-                                            const intervalId = window.setInterval(() => {
-                                                elapsedSeconds += 1;
-                                                if (loadingText) {
-                                                    loadingText.textContent = `Analyzing your request with NeMo... ${elapsedSeconds}s`;
+                                                const rowEl = document.createElement('div');
+                                                rowEl.className = `chat-row ${role === 'user' ? 'chat-row-user' : 'chat-row-other'}`;
+
+                                                const timestampText = formatTimestamp(timestamp);
+                                                const roleBadgeClass = role === 'user' ? 'chat-role-user' : (role === 'agent' ? 'chat-role-agent' : 'chat-role-system');
+                                                const renderedContent = contentHtml && contentHtml.trim().length > 0
+                                                    ? contentHtml
+                                                    : escapeHtml(content);
+
+                                                rowEl.innerHTML = `
+                                                                                                                        <div class="chat-bubble ${role === 'user' ? 'chat-bubble-user' : 'chat-bubble-other'}">
+                                                                                                                            <div class="chat-meta">
+                                                                                                                                <span class="chat-role ${roleBadgeClass}">${escapeHtml(actor)}</span>
+                                                                                                                                <span class="chat-timestamp">${escapeHtml(timestampText)}</span>
+                                                                                                                            </div>
+                                                                                                                            <div class="chat-content">${renderedContent}</div>
+                                                                                                                        </div>
+                                                                                                                    `;
+
+                                                chatMessagesDiv.appendChild(rowEl);
+                                                chatScrollDiv.scrollTop = chatScrollDiv.scrollHeight;
+                                                return rowEl;
+                                            }
+
+                                            function formatTimestamp(timestamp) {
+                                                const date = timestamp ? new Date(timestamp) : new Date();
+                                                if (Number.isNaN(date.getTime())) {
+                                                    return new Date().toLocaleString();
                                                 }
-                                            }, 1000);
 
-                                            return {
-                                                dispose() {
-                                                    window.clearInterval(intervalId);
-                                                    pendingMessage.remove();
+                                                return date.toLocaleString();
+                                            }
+
+                                            function escapeHtml(text) {
+                                                const div = document.createElement('div');
+                                                div.textContent = text;
+                                                return div.innerHTML;
+                                            }
+
+                                            function getSessionId() {
+                                                let sessionId = window.localStorage.getItem(sessionStorageKey);
+                                                if (!sessionId) {
+                                                    sessionId = (window.crypto && typeof window.crypto.randomUUID === 'function')
+                                                        ? `web-ui-${window.crypto.randomUUID()}`
+                                                        : `web-ui-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+                                                    window.localStorage.setItem(sessionStorageKey, sessionId);
                                                 }
-                                            };
-                                        }
-
-                                        function addMessageToChat(role, actor, content, timestamp, contentHtml = '') {
-                                            const placeholder = chatMessagesDiv.querySelector('.chat-placeholder');
-                                            if (placeholder) {
-                                                placeholder.remove();
+                                                return sessionId;
                                             }
 
-                                            const rowEl = document.createElement('div');
-                                            rowEl.className = `chat-row ${role === 'user' ? 'chat-row-user' : 'chat-row-other'}`;
-
-                                            const timestampText = formatTimestamp(timestamp);
-                                            const roleBadgeClass = role === 'user' ? 'chat-role-user' : (role === 'agent' ? 'chat-role-agent' : 'chat-role-system');
-                                            const renderedContent = contentHtml && contentHtml.trim().length > 0
-                                                ? contentHtml
-                                                : escapeHtml(content);
-
-                                            rowEl.innerHTML = `
-                                                                                <div class="chat-bubble ${role === 'user' ? 'chat-bubble-user' : 'chat-bubble-other'}">
-                                                                                    <div class="chat-meta">
-                                                                                        <span class="chat-role ${roleBadgeClass}">${escapeHtml(actor)}</span>
-                                                                                        <span class="chat-timestamp">${escapeHtml(timestampText)}</span>
-                                                                                    </div>
-                                                                                    <div class="chat-content">${renderedContent}</div>
-                                                                                </div>
-                                                                            `;
-
-                                            chatMessagesDiv.appendChild(rowEl);
-                                            chatScrollDiv.scrollTop = chatScrollDiv.scrollHeight;
-                                            return rowEl;
-                                        }
-
-                                        function formatTimestamp(timestamp) {
-                                            const date = timestamp ? new Date(timestamp) : new Date();
-                                            if (Number.isNaN(date.getTime())) {
-                                                return new Date().toLocaleString();
-                                            }
-
-                                            return date.toLocaleString();
-                                        }
-
-                                        function escapeHtml(text) {
-                                            const div = document.createElement('div');
-                                            div.textContent = text;
-                                            return div.innerHTML;
-                                        }
-
-                                        function getSessionId() {
-                                            let sessionId = window.localStorage.getItem(sessionStorageKey);
-                                            if (!sessionId) {
-                                                sessionId = (window.crypto && typeof window.crypto.randomUUID === 'function')
-                                                    ? `web-ui-${window.crypto.randomUUID()}`
-                                                    : `web-ui-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
-                                                window.localStorage.setItem(sessionStorageKey, sessionId);
-                                            }
-                                            return sessionId;
-                                        }
-
-                                        function maybeShowChainHint(responder) {
-                                            if (!responder || !responder.toLowerCase().includes('nemo')) {
-                                                return;
-                                            }
-
-                                            if (window.localStorage.getItem(chainHintStorageKey) === 'true') {
-                                                return;
-                                            }
-
-                                            addMessageToChat(
-                                                'system',
-                                                'System',
-                                                'Tip: for a 2-step workflow demo, now send an action prompt like "Trigger alert for high CPU usage based on the analysis findings."',
-                                                new Date()
-                                            );
-                                            window.localStorage.setItem(chainHintStorageKey, 'true');
-                                        }
-
-                                        // Load service status
-                                        async function loadServiceStatus() {
-                                            try {
-                                                const response = await fetch('/api/agents/discovery');
-                                                if (response.ok) {
-                                                    const services = await response.json();
-                                                    const statusHtml = services.map(s =>
-                                                        `<span class="badge ${s.status === 'Running' ? 'bg-success' : 'bg-danger'}">${s.serviceName}: ${s.status}</span>`
-                                                    ).join(' ');
-                                                    document.getElementById('serviceStatus').innerHTML = statusHtml || 'No services found';
-                                                    loadConfigStatus(services);
+                                            function maybeShowChainHint(responder) {
+                                                if (!responder || !responder.toLowerCase().includes('nemo')) {
+                                                    return;
                                                 }
-                                            } catch (error) {
-                                                document.getElementById('serviceStatus').innerHTML = 'Error loading status: ' + error.message;
-                                                loadConfigStatus([]);
-                                            }
-                                        }
 
-                                        function loadConfigStatus(services) {
-                                            const nemoService = services.find(s => s.serviceName && s.serviceName.toLowerCase().includes('nemo'));
-                                            const mafService = services.find(s => s.serviceName && s.serviceName.toLowerCase().includes('maf'));
+                                                if (window.localStorage.getItem(chainHintStorageKey) === 'true') {
+                                                    return;
+                                                }
 
-                                            setEndpoint('nemoEndpoint', nemoService ? nemoService.endpoint : null);
-                                            setEndpoint('mafEndpoint', mafService ? mafService.endpoint : null);
-                                        }
-
-                                        function setEndpoint(elementId, endpoint) {
-                                            const element = document.getElementById(elementId);
-                                            if (!element) {
-                                                return;
+                                                addMessageToChat(
+                                                    'system',
+                                                    'System',
+                                                    'Tip: for a 2-step workflow demo, now send an action prompt like "Trigger alert for high CPU usage based on the analysis findings."',
+                                                    new Date()
+                                                );
+                                                window.localStorage.setItem(chainHintStorageKey, 'true');
                                             }
 
-                                            if (endpoint) {
-                                                element.innerHTML = `<a href="${escapeHtml(endpoint)}" target="_blank" rel="noopener noreferrer">${escapeHtml(endpoint)}</a>`;
-                                            } else {
-                                                element.textContent = 'Unavailable';
+                                            // Load service status
+                                            async function loadServiceStatus() {
+                                                try {
+                                                    const response = await fetch('/api/agents/discovery');
+                                                    if (response.ok) {
+                                                        const services = await response.json();
+                                                        const statusHtml = services.map(s =>
+                                                            `<span class="badge ${s.status === 'Running' ? 'bg-success' : 'bg-danger'}">${s.serviceName}: ${s.status}</span>`
+                                                        ).join(' ');
+                                                        document.getElementById('serviceStatus').innerHTML = statusHtml || 'No services found';
+                                                        loadConfigStatus(services);
+                                                    }
+                                                } catch (error) {
+                                                    document.getElementById('serviceStatus').innerHTML = 'Error loading status: ' + error.message;
+                                                    loadConfigStatus([]);
+                                                }
                                             }
-                                        }
 
-                                        // Initialize
-                                        loadServiceStatus();
-                                    </script>
-                                    <style>
-                                        .chat-container {
-                                            height: 460px;
-                                            overflow-y: auto;
-                                            padding: 8px 4px;
-                                        }
+                                            function loadConfigStatus(services) {
+                                                const nemoService = services.find(s => s.serviceName && s.serviceName.toLowerCase().includes('nemo'));
+                                                const mafService = services.find(s => s.serviceName && s.serviceName.toLowerCase().includes('maf'));
 
-                                        .chat-placeholder {
-                                            color: var(--zava-text-muted) !important;
-                                            padding: 40px 0;
-                                        }
-
-                                        .chat-row {
-                                            display: flex;
-                                            margin-bottom: 14px;
-                                        }
-
-                                        .chat-row-user {
-                                            justify-content: flex-end;
-                                        }
-
-                                        .chat-row-other {
-                                            justify-content: flex-start;
-                                        }
-
-                                        .chat-bubble {
-                                            max-width: 80%;
-                                            padding: 12px 16px;
-                                            border-radius: 16px;
-                                            border: 1px solid var(--zava-border);
-                                            box-shadow: 0 1px 2px rgba(31, 27, 46, 0.05);
-                                        }
-
-                                        .chat-bubble-user {
-                                            background: linear-gradient(135deg, var(--zava-primary) 0%, var(--zava-primary-light) 100%);
-                                            border-color: transparent;
-                                            color: #fff;
-                                            border-bottom-right-radius: 4px;
-                                        }
-
-                                        .chat-bubble-user .chat-timestamp {
-                                            color: rgba(255, 255, 255, 0.8);
-                                        }
-
-                                        .chat-bubble-other {
-                                            background-color: var(--zava-surface);
-                                            border-color: var(--zava-border);
-                                            border-bottom-left-radius: 4px;
-                                        }
-
-                                        .chat-meta {
-                                            display: flex;
-                                            justify-content: space-between;
-                                            align-items: center;
-                                            gap: 12px;
-                                            margin-bottom: 6px;
-                                        }
-
-                                        .chat-role {
-                                            font-size: 0.8rem;
-                                            font-weight: 700;
-                                            text-transform: uppercase;
-                                            letter-spacing: 0.02em;
-                                        }
-
-                                        .chat-role-user {
-                                            color: #ffffff;
-                                        }
-
-                                        .chat-role-agent {
-                                            color: var(--zava-accent-dark);
-                                        }
-
-                                        .chat-role-system {
-                                            color: var(--zava-warning);
-                                        }
-
-                                        .chat-timestamp {
-                                            color: #6c757d;
-                                            font-size: 0.75rem;
-                                            white-space: nowrap;
-                                        }
-
-                                        .chat-content {
-                                            word-wrap: break-word;
-                                        }
-
-                                        .chat-content> :last-child {
-                                            margin-bottom: 0;
-                                        }
-
-                                        .chat-content p,
-                                        .chat-content ul,
-                                        .chat-content ol,
-                                        .chat-content pre,
-                                        .chat-content blockquote,
-                                        .chat-content table {
-                                            margin-bottom: 0.75rem;
-                                        }
-
-                                        .chat-content ul,
-                                        .chat-content ol {
-                                            padding-left: 1.4rem;
-                                        }
-
-                                        .chat-content pre {
-                                            background-color: #111827;
-                                            color: #f9fafb;
-                                            border-radius: 8px;
-                                            padding: 12px;
-                                            overflow-x: auto;
-                                        }
-
-                                        .chat-content code {
-                                            font-family: Consolas, "Courier New", monospace;
-                                            font-size: 0.9em;
-                                        }
-
-                                        .chat-content :not(pre)>code {
-                                            background-color: #e9ecef;
-                                            border-radius: 4px;
-                                            padding: 0.1rem 0.3rem;
-                                        }
-
-                                        .chat-content blockquote {
-                                            border-left: 4px solid #b8cdfa;
-                                            color: #495057;
-                                            margin-left: 0;
-                                            padding-left: 12px;
-                                        }
-
-                                        .chat-content table {
-                                            display: block;
-                                            width: 100%;
-                                            overflow-x: auto;
-                                            border-collapse: collapse;
-                                        }
-
-                                        .chat-content th,
-                                        .chat-content td {
-                                            border: 1px solid #dee2e6;
-                                            padding: 6px 8px;
-                                        }
-
-                                        .chat-content th {
-                                            background-color: #eef2f7;
-                                        }
-
-                                        .chat-loading-line {
-                                            display: inline-flex;
-                                            align-items: center;
-                                            gap: 8px;
-                                            font-weight: 600;
-                                        }
-
-                                        .chat-loading-spinner {
-                                            width: 14px;
-                                            height: 14px;
-                                            border: 2px solid var(--zava-border);
-                                            border-top-color: var(--zava-primary);
-                                            border-radius: 50%;
-                                            display: inline-block;
-                                            animation: chat-spin 0.9s linear infinite;
-                                        }
-
-                                        .chat-loading-subtext {
-                                            color: #6c757d;
-                                            font-size: 0.8rem;
-                                            margin-top: 6px;
-                                        }
-
-                                        @@keyframes chat-spin {
-                                            to {
-                                                transform: rotate(360deg);
+                                                setEndpoint('nemoEndpoint', nemoService ? nemoService.endpoint : null);
+                                                setEndpoint('mafEndpoint', mafService ? mafService.endpoint : null);
                                             }
-                                        }
-                                    </style>
-                                }
+
+                                            function setEndpoint(elementId, endpoint) {
+                                                const element = document.getElementById(elementId);
+                                                if (!element) {
+                                                    return;
+                                                }
+
+                                                if (endpoint) {
+                                                    element.innerHTML = `<a href="${escapeHtml(endpoint)}" target="_blank" rel="noopener noreferrer">${escapeHtml(endpoint)}</a>`;
+                                                } else {
+                                                    element.textContent = 'Unavailable';
+                                                }
+                                            }
+
+                                            // Initialize
+                                            loadServiceStatus();
+                                        </script>
+                                        <style>
+                                            .chat-container {
+                                                height: 460px;
+                                                overflow-y: auto;
+                                                padding: 8px 4px;
+                                            }
+
+                                            .chat-placeholder {
+                                                color: var(--zava-text-muted) !important;
+                                                padding: 40px 0;
+                                            }
+
+                                            .chat-row {
+                                                display: flex;
+                                                margin-bottom: 14px;
+                                            }
+
+                                            .chat-row-user {
+                                                justify-content: flex-end;
+                                            }
+
+                                            .chat-row-other {
+                                                justify-content: flex-start;
+                                            }
+
+                                            .chat-bubble {
+                                                max-width: 80%;
+                                                padding: 12px 16px;
+                                                border-radius: 16px;
+                                                border: 1px solid var(--zava-border);
+                                                box-shadow: 0 1px 2px rgba(31, 27, 46, 0.05);
+                                            }
+
+                                            .chat-bubble-user {
+                                                background: linear-gradient(135deg, var(--zava-primary) 0%, var(--zava-primary-light) 100%);
+                                                border-color: transparent;
+                                                color: #fff;
+                                                border-bottom-right-radius: 4px;
+                                            }
+
+                                            .chat-bubble-user .chat-timestamp {
+                                                color: rgba(255, 255, 255, 0.8);
+                                            }
+
+                                            .chat-bubble-other {
+                                                background-color: var(--zava-surface);
+                                                border-color: var(--zava-border);
+                                                border-bottom-left-radius: 4px;
+                                            }
+
+                                            .chat-meta {
+                                                display: flex;
+                                                justify-content: space-between;
+                                                align-items: center;
+                                                gap: 12px;
+                                                margin-bottom: 6px;
+                                            }
+
+                                            .chat-role {
+                                                font-size: 0.8rem;
+                                                font-weight: 700;
+                                                text-transform: uppercase;
+                                                letter-spacing: 0.02em;
+                                            }
+
+                                            .chat-role-user {
+                                                color: #ffffff;
+                                            }
+
+                                            .chat-role-agent {
+                                                color: var(--zava-accent-dark);
+                                            }
+
+                                            .chat-role-system {
+                                                color: var(--zava-warning);
+                                            }
+
+                                            .chat-timestamp {
+                                                color: #6c757d;
+                                                font-size: 0.75rem;
+                                                white-space: nowrap;
+                                            }
+
+                                            .chat-content {
+                                                word-wrap: break-word;
+                                            }
+
+                                            .chat-content> :last-child {
+                                                margin-bottom: 0;
+                                            }
+
+                                            .chat-content p,
+                                            .chat-content ul,
+                                            .chat-content ol,
+                                            .chat-content pre,
+                                            .chat-content blockquote,
+                                            .chat-content table {
+                                                margin-bottom: 0.75rem;
+                                            }
+
+                                            .chat-content ul,
+                                            .chat-content ol {
+                                                padding-left: 1.4rem;
+                                            }
+
+                                            .chat-content pre {
+                                                background-color: #111827;
+                                                color: #f9fafb;
+                                                border-radius: 8px;
+                                                padding: 12px;
+                                                overflow-x: auto;
+                                            }
+
+                                            .chat-content code {
+                                                font-family: Consolas, "Courier New", monospace;
+                                                font-size: 0.9em;
+                                            }
+
+                                            .chat-content :not(pre)>code {
+                                                background-color: #e9ecef;
+                                                border-radius: 4px;
+                                                padding: 0.1rem 0.3rem;
+                                            }
+
+                                            .chat-content blockquote {
+                                                border-left: 4px solid #b8cdfa;
+                                                color: #495057;
+                                                margin-left: 0;
+                                                padding-left: 12px;
+                                            }
+
+                                            .chat-content table {
+                                                display: block;
+                                                width: 100%;
+                                                overflow-x: auto;
+                                                border-collapse: collapse;
+                                            }
+
+                                            .chat-content th,
+                                            .chat-content td {
+                                                border: 1px solid #dee2e6;
+                                                padding: 6px 8px;
+                                            }
+
+                                            .chat-content th {
+                                                background-color: #eef2f7;
+                                            }
+
+                                            .chat-loading-line {
+                                                display: inline-flex;
+                                                align-items: center;
+                                                gap: 8px;
+                                                font-weight: 600;
+                                            }
+
+                                            .chat-loading-spinner {
+                                                width: 14px;
+                                                height: 14px;
+                                                border: 2px solid var(--zava-border);
+                                                border-top-color: var(--zava-primary);
+                                                border-radius: 50%;
+                                                display: inline-block;
+                                                animation: chat-spin 0.9s linear infinite;
+                                            }
+
+                                            .chat-loading-subtext {
+                                                color: #6c757d;
+                                                font-size: 0.8rem;
+                                                margin-top: 6px;
+                                            }
+
+                                            @@keyframes chat-spin {
+                                                to {
+                                                    transform: rotate(360deg);
+                                                }
+                                            }
+                                        </style>
+                                    }
