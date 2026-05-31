@@ -1172,21 +1172,37 @@ static class KnowledgeViews
 
     private const string PageStyle =
         "<style>" +
-        "body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:2rem;}" +
-        ".wrap{max-width:860px;margin:0 auto;}" +
-        "a{color:#38bdf8;}" +
-        ".back{display:inline-block;margin-bottom:1.25rem;font-size:.9rem;}" +
-        ".doc-card{display:block;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:1rem 1.25rem;margin-bottom:.75rem;text-decoration:none;color:inherit;}" +
-        ".doc-card:hover{border-color:#38bdf8;}" +
-        ".doc-card .id{font-family:ui-monospace,monospace;color:#38bdf8;font-weight:600;}" +
-        ".doc-card .cat{float:right;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;}" +
-        ".content{background:#1e293b;border:1px solid #334155;border-radius:10px;padding:1.5rem 2rem;}" +
-        ".content h1,.content h2,.content h3{color:#f8fafc;}" +
-        ".content code{background:#0f172a;padding:.15rem .35rem;border-radius:4px;}" +
+        ":root{--zava-primary:#6A2C91;--zava-primary-dark:#4A1D6B;--zava-primary-light:#8B4FB5;--zava-bg:#F4F5F9;--zava-surface:#FFFFFF;--zava-border:#E3E6F0;--zava-text:#1E1B2E;--zava-muted:#6B6880;}" +
+        "*{box-sizing:border-box;}" +
+        "body{font-family:'Inter','Segoe UI',system-ui,sans-serif;background:var(--zava-bg);color:var(--zava-text);margin:0;}" +
+        ".zava-appbar{background:linear-gradient(100deg,var(--zava-primary-dark) 0%,var(--zava-primary) 60%,var(--zava-primary-light) 100%);color:#fff;box-shadow:0 2px 12px rgba(74,29,107,.25);}" +
+        ".zava-appbar-inner{max-width:880px;margin:0 auto;padding:0 24px;height:64px;display:flex;align-items:center;gap:12px;}" +
+        ".zava-logo{display:flex;align-items:center;gap:12px;text-decoration:none;color:#fff;}" +
+        ".zava-logo-mark{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-weight:800;font-size:1.25rem;border:1px solid rgba(255,255,255,.25);}" +
+        ".zava-logo-text{display:flex;flex-direction:column;line-height:1.05;}" +
+        ".zava-logo-text .brand{font-weight:800;font-size:1.15rem;}" +
+        ".zava-logo-text .sub{font-size:.72rem;font-weight:500;opacity:.85;letter-spacing:.06em;text-transform:uppercase;}" +
+        ".wrap{max-width:880px;margin:0 auto;padding:28px 24px 48px;}" +
+        "a{color:var(--zava-primary);}" +
+        "h1{font-weight:800;letter-spacing:-.02em;}" +
+        ".back{display:inline-block;margin-bottom:1.25rem;font-size:.9rem;font-weight:600;text-decoration:none;}" +
+        ".doc-card{display:block;background:var(--zava-surface);border:1px solid var(--zava-border);border-radius:12px;padding:1rem 1.25rem;margin-bottom:.75rem;text-decoration:none;color:inherit;box-shadow:0 1px 3px rgba(31,27,46,.06);transition:border-color .15s,box-shadow .15s;}" +
+        ".doc-card:hover{border-color:var(--zava-primary-light);box-shadow:0 6px 18px rgba(31,27,46,.08);}" +
+        ".doc-card .id{font-family:ui-monospace,monospace;color:var(--zava-primary);font-weight:700;}" +
+        ".doc-card .cat{float:right;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;color:#fff;background:var(--zava-primary);padding:2px 10px;border-radius:999px;}" +
+        ".content{background:var(--zava-surface);border:1px solid var(--zava-border);border-radius:12px;padding:1.5rem 2rem;box-shadow:0 1px 3px rgba(31,27,46,.06);}" +
+        ".content h1,.content h2,.content h3{color:var(--zava-text);}" +
+        ".content code{background:var(--zava-bg);padding:.15rem .35rem;border-radius:4px;}" +
         ".content table{border-collapse:collapse;}" +
-        ".content th,.content td{border:1px solid #334155;padding:.4rem .6rem;}" +
-        ".badge{font-family:ui-monospace,monospace;color:#38bdf8;}" +
+        ".content th,.content td{border:1px solid var(--zava-border);padding:.4rem .6rem;}" +
+        ".badge{font-family:ui-monospace,monospace;color:var(--zava-primary);background:rgba(106,44,145,.1);padding:2px 8px;border-radius:6px;}" +
         "</style>";
+
+    private const string AppBar =
+        "<header class=\"zava-appbar\"><div class=\"zava-appbar-inner\">" +
+        "<a class=\"zava-logo\" href=\"/knowledge\"><span class=\"zava-logo-mark\">Z</span>" +
+        "<span class=\"zava-logo-text\"><span class=\"brand\">Zava</span>" +
+        "<span class=\"sub\">Knowledge Base</span></span></a></div></header>";
 
     public static string RenderIndexPage(IReadOnlyList<KnowledgeDocInfo> docs)
     {
@@ -1204,10 +1220,9 @@ static class KnowledgeViews
 
         return "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
                "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
-               "<title>Indexed knowledge documents</title>" + PageStyle + "</head><body><div class=\"wrap\">" +
-               "<a class=\"back\" href=\"/\">&larr; Back to chat</a>" +
+               "<title>Indexed knowledge documents</title>" + PageStyle + "</head><body>" + AppBar + "<div class=\"wrap\">" +
                "<h1>Indexed knowledge documents</h1>" +
-               "<p>These are the runbooks and policies grounding the MAF Action Agent's responses.</p>" +
+               "<p>These are the runbooks and policies grounding the Zava Support Action Agent's responses.</p>" +
                items + "</div></body></html>";
     }
 
@@ -1220,10 +1235,10 @@ static class KnowledgeViews
 
         return "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
                "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
-               $"<title>{id} — {title}</title>" + PageStyle + "</head><body><div class=\"wrap\">" +
+               $"<title>{id} — {title}</title>" + PageStyle + "</head><body>" + AppBar + "<div class=\"wrap\">" +
                "<a class=\"back\" href=\"/knowledge\">&larr; All indexed documents</a>" +
                $"<h1><span class=\"badge\">{id}</span> {title}</h1>" +
-               $"<p style=\"color:#94a3b8;\">Category: {cat}</p>" +
+               $"<p style=\"color:#6B6880;\">Category: {cat}</p>" +
                $"<div class=\"content\">{body}</div></div></body></html>";
     }
 
@@ -1231,7 +1246,7 @@ static class KnowledgeViews
     {
         var id = System.Net.WebUtility.HtmlEncode(docId);
         return "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
-               "<title>Document not found</title>" + PageStyle + "</head><body><div class=\"wrap\">" +
+               "<title>Document not found</title>" + PageStyle + "</head><body>" + AppBar + "<div class=\"wrap\">" +
                "<a class=\"back\" href=\"/knowledge\">&larr; All indexed documents</a>" +
                $"<h1>Document not found</h1><p>No indexed document with id <span class=\"badge\">{id}</span> was found.</p>" +
                "</div></body></html>";

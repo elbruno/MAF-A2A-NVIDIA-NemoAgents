@@ -3,49 +3,261 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Multi-Agent Chat Interface</title>
+    <title>@ViewData["Title"] - Zava Support</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <style>
+        :root {
+            --zava-primary: #6A2C91;
+            --zava-primary-dark: #4A1D6B;
+            --zava-primary-light: #8B4FB5;
+            --zava-accent: #00A4A6;
+            --zava-accent-dark: #008486;
+            --zava-bg: #F4F5F9;
+            --zava-surface: #FFFFFF;
+            --zava-border: #E3E6F0;
+            --zava-text: #1E1B2E;
+            --zava-text-muted: #6B6880;
+            --zava-success: #1F9D6B;
+            --zava-danger: #E0455E;
+            --zava-warning: #C9870F;
+            --zava-shadow: 0 1px 3px rgba(31, 27, 46, 0.08), 0 8px 24px rgba(31, 27, 46, 0.06);
+            --zava-radius: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: var(--zava-bg);
+            color: var(--zava-text);
+            margin: 0;
             min-height: 100vh;
-            padding-top: 20px;
+            display: flex;
+            flex-direction: column;
         }
-        .container {
-            background: white;
+
+        /* ---- Top App Bar ---- */
+        .zava-appbar {
+            background: linear-gradient(100deg, var(--zava-primary-dark) 0%, var(--zava-primary) 60%, var(--zava-primary-light) 100%);
+            color: #fff;
+            box-shadow: 0 2px 12px rgba(74, 29, 107, 0.25);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .zava-appbar-inner {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 0 24px;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .zava-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: #fff;
+        }
+
+        .zava-logo-mark {
+            width: 38px;
+            height: 38px;
             border-radius: 10px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.16);
+            display: grid;
+            place-items: center;
+            font-weight: 800;
+            font-size: 1.25rem;
+            letter-spacing: -0.02em;
+            border: 1px solid rgba(255, 255, 255, 0.25);
         }
-        h1 {
-            color: #667eea;
-            margin-bottom: 10px;
+
+        .zava-logo-text {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.05;
         }
-        .lead {
-            color: #666;
+
+        .zava-logo-text .brand {
+            font-weight: 800;
+            font-size: 1.15rem;
+            letter-spacing: -0.01em;
         }
+
+        .zava-logo-text .sub {
+            font-size: 0.72rem;
+            font-weight: 500;
+            opacity: 0.85;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .zava-appbar-spacer {
+            flex: 1;
+        }
+
+        .zava-appbar-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.12);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 6px 14px;
+            border-radius: 999px;
+        }
+
+        .zava-appbar-status .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #3ef0a8;
+            box-shadow: 0 0 0 3px rgba(62, 240, 168, 0.25);
+        }
+
+        /* ---- Page shell ---- */
+        .zava-main {
+            flex: 1;
+            width: 100%;
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 28px 24px 48px;
+        }
+
+        /* ---- Footer ---- */
+        .zava-footer {
+            border-top: 1px solid var(--zava-border);
+            background: var(--zava-surface);
+            color: var(--zava-text-muted);
+            font-size: 0.8rem;
+        }
+
+        .zava-footer-inner {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .zava-footer .sep {
+            opacity: 0.4;
+        }
+
+        /* ---- Shared component theming ---- */
         .card {
-            border-color: #667eea;
+            border: 1px solid var(--zava-border);
+            border-radius: var(--zava-radius);
+            background: var(--zava-surface);
+            box-shadow: var(--zava-shadow);
             margin-bottom: 20px;
         }
+
         .card-header {
-            background-color: #667eea;
-            color: white;
+            background: var(--zava-surface);
+            color: var(--zava-text);
+            font-weight: 600;
+            border-bottom: 1px solid var(--zava-border);
+            border-radius: var(--zava-radius) var(--zava-radius) 0 0 !important;
         }
+
         .btn-primary {
-            background-color: #667eea;
-            border-color: #667eea;
+            background: var(--zava-primary);
+            border-color: var(--zava-primary);
+            font-weight: 600;
         }
-        .btn-primary:hover {
-            background-color: #764ba2;
-            border-color: #764ba2;
+
+        .btn-primary:hover,
+        .btn-primary:focus {
+            background: var(--zava-primary-dark);
+            border-color: var(--zava-primary-dark);
+        }
+
+        .btn-outline-secondary {
+            color: var(--zava-primary);
+            border-color: var(--zava-border);
+            font-weight: 600;
+        }
+
+        .btn-outline-secondary:hover {
+            background: var(--zava-primary);
+            border-color: var(--zava-primary);
+            color: #fff;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--zava-primary-light);
+            box-shadow: 0 0 0 0.2rem rgba(106, 44, 145, 0.15);
+        }
+
+        a {
+            color: var(--zava-primary);
+        }
+
+        a:hover {
+            color: var(--zava-primary-dark);
+        }
+
+        h1 {
+            color: var(--zava-text);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .lead {
+            color: var(--zava-text-muted);
         }
     </style>
 </head>
 <body>
-    <div class="@RenderSection("Classes", required: false)">
+    <header class="zava-appbar">
+        <div class="zava-appbar-inner">
+            <a class="zava-logo" href="/">
+                <span class="zava-logo-mark">Z</span>
+                <span class="zava-logo-text">
+                    <span class="brand">Zava</span>
+                    <span class="sub">Support Center</span>
+                </span>
+            </a>
+            <div class="zava-appbar-spacer"></div>
+            <div class="zava-appbar-status">
+                <span class="dot"></span>
+                <span>Live agent assist</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="zava-main @RenderSection("Classes", required: false)">
         @RenderBody()
-    </div>
+    </main>
+
+    <footer class="zava-footer">
+        <div class="zava-footer-inner">
+            <span>&copy; @DateTime.Now.Year Zava</span>
+            <span class="sep">•</span>
+            <span>Support Center</span>
+            <span class="sep">•</span>
+            <span>Powered by NeMo Data Analysis &amp; MAF Action agents</span>
+        </div>
+    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     @await RenderSectionAsync("Scripts", required: false)
