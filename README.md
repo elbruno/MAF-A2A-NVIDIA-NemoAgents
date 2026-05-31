@@ -25,6 +25,29 @@ This repository demonstrates a practical workflow:
 
 <img src="./images/MAF-A2A-Nemo-Demo02.gif" alt="MAF A2A NeMo demo in Aspire" />
 
+## 🖥️ Zava Support Center UI
+
+The Web Chat Interface ships as a polished, production-style **Zava Support Center** — a
+support console where the chat is the front door to the multi-agent system.
+
+### Grounded RAG action in the chat
+
+The MAF Action Agent answers incident prompts with runbook-backed remediation and shows the
+exact knowledge sources it relied on (`RB-014`, `ASP-001`) as clickable "Grounded in" chips.
+
+<img src="./images/zava-chat-grounded-rag.gif" alt="Zava Support Center chat performing a grounded RAG remediation" width="820" />
+
+![Zava Support Center grounded RAG result](./images/screenshot-chat-grounded.png)
+
+### Indexed knowledge base
+
+The runbooks and policies grounding every action are browsable in a dedicated, Zava-branded
+knowledge base that opens in its own tab.
+
+<img src="./images/zava-knowledge-base.gif" alt="Browsing the Zava knowledge base of runbooks and policies" width="820" />
+
+![Zava knowledge base index](./images/screenshot-knowledge-base.png)
+
 ## ⚡ Quick Start
 
 ### 1) Clone repo
