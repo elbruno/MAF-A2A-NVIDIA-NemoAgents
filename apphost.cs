@@ -48,16 +48,9 @@ var nemo = builder.AddExecutable(
 nemo.WithEnvironment("NEMO_PUBLIC_BASE_URL", nemo.GetEndpoint("http"));
 
 // MAF Action Agent (.NET)
-var mafAgent = builder.AddExecutable(
+var mafAgent = builder.AddProject(
         name: "maf-agent",
-        command: "dotnet",
-        workingDirectory: ".",
-        args: new[]
-        {
-            "run",
-            "--project",
-            ".\\src\\MafActionAgent\\MafActionAgent.csproj"
-        })
+        projectPath: ".\\src\\MafActionAgent\\MafActionAgent.csproj")
     .WithHttpEndpoint(name: "http", env: "MAF_PORT")
     .WithEnvironment("MAF_HOST", "127.0.0.1")
     .WithEnvironment("NEMO_A2A_ENDPOINT", nemo.GetEndpoint("http"))
