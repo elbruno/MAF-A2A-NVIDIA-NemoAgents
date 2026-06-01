@@ -47,7 +47,7 @@ nemo.WithEnvironment("NEMO_PUBLIC_BASE_URL", nemoBaseUrl);
 var mafAgent = builder.AddProject(
         name: "maf-agent",
         projectPath: ".\\src\\MafActionAgent\\MafActionAgent.csproj")
-    .WithHttpEndpoint(name: "http", env: "MAF_PORT")
+    .WithHttpEndpoint(port: null, targetPort: 5055, name: "http", env: "MAF_PORT")
     .WithEnvironment("MAF_HOST", "127.0.0.1")
     .WithEnvironment("NEMO_A2A_ENDPOINT", nemoBaseUrl)
     .WithEnvironment("NVIDIA_API_KEY", nvidiaApiKey)
@@ -72,7 +72,7 @@ var mafAgent = builder.AddProject(
 var webUi = builder.AddProject(
         name: "web-ui",
         projectPath: ".\\src\\WebChatInterface\\WebChatInterface.csproj")
-    .WithHttpEndpoint(name: "http")
+    .WithHttpEndpoint(port: null, targetPort: 5000, name: "http", env: "WEB_UI_PORT")
     .WithEnvironment("NEMO_A2A_ENDPOINT", nemoBaseUrl)
     .WithEnvironment("MAF_AGENT_ENDPOINT", mafAgent.GetEndpoint("http"))
     .WithEnvironment("NVIDIA_API_KEY", nvidiaApiKey)
