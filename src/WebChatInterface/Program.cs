@@ -30,9 +30,13 @@ configuration
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
 
-var webUiHost = configuration["WEB_UI_HOST"] ?? "127.0.0.1";
-var webUiPort = configuration["WEB_UI_PORT"] ?? "5000";
-builder.WebHost.UseUrls($"http://{webUiHost}:{webUiPort}");
+var aspireUrls = configuration["ASPNETCORE_URLS"];
+if (string.IsNullOrWhiteSpace(aspireUrls))
+{
+    var webUiHost = configuration["WEB_UI_HOST"] ?? "127.0.0.1";
+    var webUiPort = configuration["WEB_UI_PORT"] ?? "5000";
+    builder.WebHost.UseUrls($"http://{webUiHost}:{webUiPort}");
+}
 
 // Logging
 builder.Services.AddLogging(loggingBuilder =>

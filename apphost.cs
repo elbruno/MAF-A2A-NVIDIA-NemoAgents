@@ -18,6 +18,8 @@ var imageApiKey = builder.AddParameter("gpt-image-api-key", secret: true);
 var imageDeployment = builder.AddParameter("gpt-image-deployment", value: "gpt-image-2");
 
 // NeMo Data Analysis Agent (Executable - Python)
+const string nemoBaseUrl = "http://127.0.0.1:18088";
+
 var nemo = builder.AddExecutable(
         name: "nemo-agent",
         command: "powershell",
@@ -26,9 +28,8 @@ var nemo = builder.AddExecutable(
         {
             "-NoProfile",
             "-Command",
-            "$env:OTEL_EXPORTER_OTLP_ENDPOINT = if (-not [string]::IsNullOrWhiteSpace($env:ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT)) { $env:ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT } else { $env:OTEL_EXPORTER_OTLP_ENDPOINT }; $env:OTEL_EXPORTER_OTLP_HEADERS = if (-not [string]::IsNullOrWhiteSpace($env:ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_HEADERS)) { $env:ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_HEADERS } else { $env:OTEL_EXPORTER_OTLP_HEADERS }; $certCandidate = Get-ChildItem -Path $env:SSL_CERT_DIR -Filter '*.pem' -ErrorAction SilentlyContinue | Select-Object -First 1; if ($null -eq $certCandidate) { $certCandidate = Get-ChildItem -Path $env:SSL_CERT_DIR -Filter '*.0' -ErrorAction SilentlyContinue | Select-Object -First 1 }; if ($null -ne $certCandidate) { $env:GRPC_DEFAULT_SSL_ROOTS_FILE_PATH = $certCandidate.FullName }; $workflowProfile = if ([string]::IsNullOrWhiteSpace($env:NEMO_WORKFLOW_PROFILE)) { 'standard' } else { $env:NEMO_WORKFLOW_PROFILE.ToLowerInvariant() }; $workflowFile = if ($workflowProfile -eq 'fast') { '.\\src\\NemoDataAnalysisAgent\\nemo\\workflow-fast.yml' } else { '.\\src\\NemoDataAnalysisAgent\\nemo\\workflow.yml' }; if (Test-Path '.\\.venv\\Scripts\\nat.exe') { & '.\\.venv\\Scripts\\nat.exe' a2a serve --config_file $workflowFile --host $env:NEMO_HOST --port $env:NEMO_PORT --public_base_url $env:NEMO_PUBLIC_BASE_URL --name \"nemo-data-analysis-agent\" } else { nat a2a serve --config_file $workflowFile --host $env:NEMO_HOST --port $env:NEMO_PORT --public_base_url $env:NEMO_PUBLIC_BASE_URL --name \"nemo-data-analysis-agent\" }"
+            "$env:OTEL_EXPORTER_OTLP_ENDPOINT = if (-not [string]::IsNullOrWhiteSpace($env:ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT)) { $env:ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT } else { $env:OTEL_EXPORTER_OTLP_ENDPOINT }; $env:OTEL_EXPORTER_OTLP_HEADERS = if (-not [string]::IsNullOrWhiteSpace($env:ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_HEADERS)) { $env:ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_HEADERS } else { $env:OTEL_EXPORTER_OTLP_HEADERS }; $certCandidate = Get-ChildItem -Path $env:SSL_CERT_DIR -Filter '*.pem' -ErrorAction SilentlyContinue | Select-Object -First 1; if ($null -eq $certCandidate) { $certCandidate = Get-ChildItem -Path $env:SSL_CERT_DIR -Filter '*.0' -ErrorAction SilentlyContinue | Select-Object -First 1 }; if ($null -ne $certCandidate) { $env:GRPC_DEFAULT_SSL_ROOTS_FILE_PATH = $certCandidate.FullName }; $workflowProfile = if ([string]::IsNullOrWhiteSpace($env:NEMO_WORKFLOW_PROFILE)) { 'standard' } else { $env:NEMO_WORKFLOW_PROFILE.ToLowerInvariant() }; $workflowFile = if ($workflowProfile -eq 'fast') { '.\\src\\NemoDataAnalysisAgent\\nemo\\workflow-fast.yml' } else { '.\\src\\NemoDataAnalysisAgent\\nemo\\workflow.yml' }; if (Test-Path '.\\.venv\\Scripts\\nat.exe') { & '.\\.venv\\Scripts\\nat.exe' a2a serve --config_file $workflowFile --host $env:NEMO_HOST --port 18088 --public_base_url $env:NEMO_PUBLIC_BASE_URL --name \"nemo-data-analysis-agent\" } else { nat a2a serve --config_file $workflowFile --host $env:NEMO_HOST --port 18088 --public_base_url $env:NEMO_PUBLIC_BASE_URL --name \"nemo-data-analysis-agent\" }"
         })
-    .WithHttpEndpoint(name: "http", env: "NEMO_PORT", port: 8088)
     .WithEnvironment("NEMO_HOST", "127.0.0.1")
     .WithEnvironment("NEMO_WORKFLOW_PROFILE", "fast")
     .WithEnvironment("NEMO_FAST_MODEL_NAME", "meta/llama-3.2-3b-instruct")
@@ -38,22 +39,17 @@ var nemo = builder.AddExecutable(
     .WithEnvironment("AZURE_OPENAI_API_KEY", azureOpenAiApiKey)
     .WithOtlpExporter()
     .WithEnvironment("NEMO_OTEL_PROJECT", "nemo-data-analysis-agent")
-    .WithEnvironment("NEMO_LOG_LEVEL", "INFO")
-    .WithUrlForEndpoint("http", url =>
-    {
-        url.Url = "/.well-known/agent-card.json";
-        url.DisplayText = "Agent Card";
-    });
+    .WithEnvironment("NEMO_LOG_LEVEL", "INFO");
 
-nemo.WithEnvironment("NEMO_PUBLIC_BASE_URL", nemo.GetEndpoint("http"));
+nemo.WithEnvironment("NEMO_PUBLIC_BASE_URL", nemoBaseUrl);
 
 // MAF Action Agent (.NET)
 var mafAgent = builder.AddProject(
         name: "maf-agent",
         projectPath: ".\\src\\MafActionAgent\\MafActionAgent.csproj")
-    .WithHttpEndpoint(name: "http", env: "MAF_PORT", port: 5055)
+    .WithHttpEndpoint(name: "http", env: "MAF_PORT")
     .WithEnvironment("MAF_HOST", "127.0.0.1")
-    .WithEnvironment("NEMO_A2A_ENDPOINT", nemo.GetEndpoint("http"))
+    .WithEnvironment("NEMO_A2A_ENDPOINT", nemoBaseUrl)
     .WithEnvironment("NVIDIA_API_KEY", nvidiaApiKey)
     .WithEnvironment("AZURE_OPENAI_ENDPOINT", azureOpenAiEndpoint)
     .WithEnvironment("AZURE_OPENAI_DEPLOYMENT_NAME", azureOpenAiDeploymentName)
@@ -73,18 +69,11 @@ var mafAgent = builder.AddProject(
     });
 
 // Web Chat Interface (.NET)
-var webUi = builder.AddExecutable(
+var webUi = builder.AddProject(
         name: "web-ui",
-        command: "dotnet",
-        workingDirectory: ".",
-        args: new[]
-        {
-            "run",
-            "--project",
-            ".\\src\\WebChatInterface\\WebChatInterface.csproj"
-        })
-    .WithHttpEndpoint(name: "http", env: "WEB_UI_PORT", port: 5000)
-    .WithEnvironment("NEMO_A2A_ENDPOINT", nemo.GetEndpoint("http"))
+        projectPath: ".\\src\\WebChatInterface\\WebChatInterface.csproj")
+    .WithHttpEndpoint(name: "http")
+    .WithEnvironment("NEMO_A2A_ENDPOINT", nemoBaseUrl)
     .WithEnvironment("MAF_AGENT_ENDPOINT", mafAgent.GetEndpoint("http"))
     .WithEnvironment("NVIDIA_API_KEY", nvidiaApiKey)
     .WithEnvironment("AZURE_OPENAI_ENDPOINT", azureOpenAiEndpoint)
