@@ -25,9 +25,13 @@ configuration
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
 
-var mafHost = configuration["MAF_HOST"] ?? "127.0.0.1";
-var mafPort = configuration["MAF_PORT"] ?? "5055";
-builder.WebHost.UseUrls($"http://{mafHost}:{mafPort}");
+var aspireUrls = configuration["ASPNETCORE_URLS"];
+if (string.IsNullOrWhiteSpace(aspireUrls))
+{
+    var mafHost = configuration["MAF_HOST"] ?? "127.0.0.1";
+    var mafPort = configuration["MAF_PORT"] ?? "5055";
+    builder.WebHost.UseUrls($"http://{mafHost}:{mafPort}");
+}
 
 // Logging
 builder.Services.AddLogging(loggingBuilder =>

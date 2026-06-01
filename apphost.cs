@@ -1,4 +1,4 @@
-#:sdk Aspire.AppHost.Sdk@13.3.4
+#:sdk Aspire.AppHost.Sdk@13.3.5
 
 using Aspire.Hosting;
 
@@ -28,7 +28,7 @@ var nemo = builder.AddExecutable(
             "-Command",
             "$env:OTEL_EXPORTER_OTLP_ENDPOINT = if (-not [string]::IsNullOrWhiteSpace($env:ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT)) { $env:ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_ENDPOINT } else { $env:OTEL_EXPORTER_OTLP_ENDPOINT }; $env:OTEL_EXPORTER_OTLP_HEADERS = if (-not [string]::IsNullOrWhiteSpace($env:ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_HEADERS)) { $env:ASPIRE_RESOURCE_SERVICE_BINDING_OTEL_EXPORTER_OTLP_HEADERS } else { $env:OTEL_EXPORTER_OTLP_HEADERS }; $certCandidate = Get-ChildItem -Path $env:SSL_CERT_DIR -Filter '*.pem' -ErrorAction SilentlyContinue | Select-Object -First 1; if ($null -eq $certCandidate) { $certCandidate = Get-ChildItem -Path $env:SSL_CERT_DIR -Filter '*.0' -ErrorAction SilentlyContinue | Select-Object -First 1 }; if ($null -ne $certCandidate) { $env:GRPC_DEFAULT_SSL_ROOTS_FILE_PATH = $certCandidate.FullName }; $workflowProfile = if ([string]::IsNullOrWhiteSpace($env:NEMO_WORKFLOW_PROFILE)) { 'standard' } else { $env:NEMO_WORKFLOW_PROFILE.ToLowerInvariant() }; $workflowFile = if ($workflowProfile -eq 'fast') { '.\\src\\NemoDataAnalysisAgent\\nemo\\workflow-fast.yml' } else { '.\\src\\NemoDataAnalysisAgent\\nemo\\workflow.yml' }; if (Test-Path '.\\.venv\\Scripts\\nat.exe') { & '.\\.venv\\Scripts\\nat.exe' a2a serve --config_file $workflowFile --host $env:NEMO_HOST --port $env:NEMO_PORT --public_base_url $env:NEMO_PUBLIC_BASE_URL --name \"nemo-data-analysis-agent\" } else { nat a2a serve --config_file $workflowFile --host $env:NEMO_HOST --port $env:NEMO_PORT --public_base_url $env:NEMO_PUBLIC_BASE_URL --name \"nemo-data-analysis-agent\" }"
         })
-    .WithHttpEndpoint(name: "http", env: "NEMO_PORT")
+    .WithHttpEndpoint(name: "http", env: "NEMO_PORT", port: 8088)
     .WithEnvironment("NEMO_HOST", "127.0.0.1")
     .WithEnvironment("NEMO_WORKFLOW_PROFILE", "fast")
     .WithEnvironment("NEMO_FAST_MODEL_NAME", "meta/llama-3.2-3b-instruct")
@@ -51,7 +51,7 @@ nemo.WithEnvironment("NEMO_PUBLIC_BASE_URL", nemo.GetEndpoint("http"));
 var mafAgent = builder.AddProject(
         name: "maf-agent",
         projectPath: ".\\src\\MafActionAgent\\MafActionAgent.csproj")
-    .WithHttpEndpoint(name: "http", env: "MAF_PORT")
+    .WithHttpEndpoint(name: "http", env: "MAF_PORT", port: 5055)
     .WithEnvironment("MAF_HOST", "127.0.0.1")
     .WithEnvironment("NEMO_A2A_ENDPOINT", nemo.GetEndpoint("http"))
     .WithEnvironment("NVIDIA_API_KEY", nvidiaApiKey)
